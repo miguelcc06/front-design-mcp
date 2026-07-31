@@ -354,10 +354,14 @@ uv run python scripts/mcp_smoke.py
 
 Measured suite results:
 
-| Environment | Result |
-|---|---|
-| Offline (no PostgreSQL) | **156 passed, 18 skipped** (PostgreSQL-marked tests + one fastembed-conditional skip) |
-| With PostgreSQL available | **173 passed, 1 skipped** |
+Measured after `uv sync --all-extras --frozen` (the `local` fastembed group is
+not installed by that command):
+
+| Environment | Python | Result |
+|---|---|---|
+| Offline, no PostgreSQL | 3.12 | **157 passed, 17 skipped** (the skips are the PostgreSQL-marked tests) |
+| Offline, no PostgreSQL | 3.11 | **157 passed, 17 skipped** |
+| `FRONT_DESIGN_TEST_DATABASE_URL` set | 3.12 | **174 passed** |
 
 CI runs the offline gate above on **Python 3.11 and 3.12**, plus a separate job against `pgvector/pgvector:pg16` that applies the migrations, verifies they are reproducible from an empty database, and runs `pytest -m postgres`. See [CONTRIBUTING.md](CONTRIBUTING.md) and [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
