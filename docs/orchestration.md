@@ -228,3 +228,40 @@ Package C implementado por Task subagent model `cursor-grok-4.5-high` (Grok 4.5 
 | 8 | Commit + push a `cursor/front-design-mcp-v1-7601` | ☑ |
 
 Package B implementado por Task subagent model `cursor-grok-4.5-high` (Grok 4.5 High). Parent run model: `cursor-grok-4.5-high-fast`. Docs model id: `grok-4.5`.
+
+---
+
+## Final review
+
+### Orchestrator adversarial review results (2026-07-31)
+
+| Check | Result |
+|-------|--------|
+| `uv run ruff check src tests scripts` | pass |
+| `uv run mypy src/front_design_mcp` | 0 errors |
+| `uv run pytest -q` | 36 passed |
+| `uv run python scripts/evaluate_rag.py` | 4/4 PASS |
+| MCP Client smoke | lists 9 tools + resource + prompt; `compare_frontend_options` / `get_resource_details` ok |
+
+### Parent model evidence
+
+| Rol | Model ID |
+|-----|----------|
+| Parent Cloud Agent run | `cursor-grok-4.5-high-fast` |
+| Production packages A–D + C-fix (Task subagents) | `cursor-grok-4.5-high` |
+
+### GitHub metadata blockage
+
+`gh repo edit` for description/topics returned **HTTP 403 Resource not accessible by integration** — cannot set description/topics with the current token. Repo URL https://github.com/miguelcc06/front-design-mcp is public and code is pushed on branch `cursor/front-design-mcp-v1-7601`. Suggested description/topics remain in [`docs/github.md`](github.md) for manual apply by the owner.
+
+### Placeholder token note
+
+The placeholder `ghp_xxx` in `.agents/skills/mcp-builder/reference/evaluation.md` is example text from the Anthropic skill, not a live secret.
+
+### Known limitations (v1)
+
+- BM25-only default (no dense vectors)
+- Spanish support via lexicon, not full i18n
+- GSAP metadata-only
+- Magic UI / shadcn fixtures are subsets
+- No Dockerfile in v1
