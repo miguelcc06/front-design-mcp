@@ -1,0 +1,33 @@
+# Development-only PostgreSQL + pgvector.
+# Credentials below are development defaults and must NOT be used in production.
+#
+# Matching application URL:
+#   FRONT_DESIGN_DATABASE_URL=postgresql://front_design:front_design@127.0.0.1:5432/front_design
+#
+# Start: docker compose up -d
+# Stop:  docker compose down
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-front_design}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-front_design}
+      POSTGRES_DB: ${POSTGRES_DB:-front_design}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - front_design_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-front_design} -d ${POSTGRES_DB:-front_design}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  front_design_pgdata:

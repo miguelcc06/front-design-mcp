@@ -1,4 +1,9 @@
-"""Shared runtime for MCP tools — store, search, auto-ingest, serialization."""
+"""Shared runtime for MCP tools — store/search construction and serialization.
+
+The runtime resolves the backend through :func:`create_store` and the embedding
+provider through :func:`create_embedding_provider`, so the tool layer never
+depends on SQLite or PostgreSQL specifics.
+"""
 
 from __future__ import annotations
 
@@ -9,19 +14,23 @@ from typing import Any
 from mcp.types import ToolAnnotations
 
 from front_design_mcp.config import Settings, get_settings
-from front_design_mcp.ingest.pipeline import run_ingest
+from front_design_mcp.embeddings.base import EmbeddingConfigError, EmbeddingProvider
+from front_design_mcp.embeddings.factory import create_embedding_provider, describe_provider
+from front_design_mcp.frameworks import resource_matches_framework
+from front_design_mcp.ingest.pipeline import register_post_ingest_hook, run_ingest
 from front_design_mcp.logging_utils import get_logger
 from front_design_mcp.models import Citation, DocumentationChunk, FrontendResource, SearchHit
 from front_design_mcp.search.service import SearchService
-from front_design_mcp.store.sqlite_store import SqliteStore
-from front_design_mcp.tools.frameworks import normalize_framework_token
+from front_design_mcp.store.base import Store
+from front_design_mcp.store.factory import create_store
 
 log = get_logger("tools.runtime")
 
 _lock = threading.Lock()
-_store: SqliteStore | None = None
+_store: Store | None = None
 _search: SearchService | None = None
 _settings: Settings | None = None
+_embedder: EmbeddingProvider | None = None
 _ready = False
 
 READONLY_ANNOTATIONS = ToolAnnotations(
@@ -31,9 +40,19 @@ READONLY_ANNOTATIONS = ToolAnnotations(
 )
 
 
+def _rebuild_after_ingest(_report: Any) -> None:
+    """Refresh the in-process index when ingest ran inside this process."""
+    if _search is not None:
+        count = _search.rebuild()
+        log.info("search_index_refreshed", chunks=count)
+
+
+register_post_ingest_hook(_rebuild_after_ingest)
+
+
 def reset_runtime() -> None:
     """Test helper — drop cached store/search (does not delete DB files)."""
-    global _store, _search, _settings, _ready
+    global _store, _search, _settings, _embedder, _ready
     with _lock:
         if _store is not None:
             with contextlib.suppress(Exception):
@@ -41,42 +60,93 @@ def reset_runtime() -> None:
         _store = None
         _search = None
         _settings = None
+        _embedder = None
         _ready = False
 
 
-def ensure_ready(*, settings: Settings | None = None) -> tuple[SqliteStore, SearchService]:
-    """Open SQLite store; auto-ingest offline fixtures when empty."""
-    global _store, _search, _settings, _ready
+def _build_embedder(cfg: Settings) -> EmbeddingProvider:
+    """Never let a misconfigured provider block startup — degrade to lexical."""
+    try:
+        return create_embedding_provider(cfg)
+    except EmbeddingConfigError as exc:
+        log.warning(
+            "embedding_provider_unavailable",
+            provider=cfg.embedding_provider,
+            error=str(exc),
+        )
+        from front_design_mcp.embeddings.base import NullEmbeddingProvider
+
+        return NullEmbeddingProvider()
+
+
+def ensure_ready(*, settings: Settings | None = None) -> tuple[Store, SearchService]:
+    """Open the configured store; auto-ingest offline fixtures when it is empty."""
+    global _store, _search, _settings, _embedder, _ready
     with _lock:
         if _ready and _store is not None and _search is not None:
             return _store, _search
 
         cfg = settings or get_settings()
         _settings = cfg
-        db_path = cfg.resolve_db_path()
-        store = SqliteStore(db_path)
+        store = create_store(cfg)
         store.open()
+        embedder = _build_embedder(cfg)
 
         if store.count_resources() == 0:
-            log.info(
-                "auto_ingest_offline",
-                reason="empty_db",
-                db_path=str(db_path),
+            log.info("auto_ingest_offline", reason="empty_store", backend=store.backend)
+            report = run_ingest(
+                sources=None,
+                online=False,
+                settings=cfg,
+                store=store,
+                embedder=embedder,
             )
-            report = run_ingest(sources=None, online=False, settings=cfg, store=store)
             log.info(
                 "auto_ingest_done",
-                ok=report.ok,
+                outcome=report.outcome.value,
                 resources=report.total_resources,
                 chunks=report.total_chunks,
             )
 
-        search = SearchService(store)
+        search = SearchService(
+            store,
+            embedder=embedder,
+            search_mode=cfg.search_mode,
+            rrf_k=cfg.rrf_k,
+            rrf_lexical_weight=cfg.rrf_lexical_weight,
+            rrf_vector_weight=cfg.rrf_vector_weight,
+            candidates=cfg.search_candidates,
+        )
         search.rebuild()
         _store = store
         _search = search
+        _embedder = embedder
         _ready = True
         return store, search
+
+
+def runtime_health() -> dict[str, Any]:
+    """Backend, retrieval mode, provider, and index counts. Never leaks secrets."""
+    cfg = _settings or get_settings()
+    store, search = ensure_ready(settings=cfg)
+    capabilities = store.capabilities()
+    return {
+        "status": "ok",
+        "ready": True,
+        "backend": capabilities.backend,
+        "database": cfg.redacted_database_url()
+        if capabilities.backend == "postgres"
+        else str(cfg.resolve_db_path()),
+        "search": search.describe(),
+        "embedding": describe_provider(_embedder) if _embedder is not None else None,
+        "store": store.stats(),
+        "capabilities": {
+            "lexical_search": capabilities.lexical_search,
+            "vector_search": capabilities.vector_search,
+            "hybrid_search": search.resolve_mode().value == "hybrid",
+        },
+        "network_ingest_enabled": cfg.enable_network_ingest,
+    }
 
 
 def resource_to_dict(resource: FrontendResource) -> dict[str, Any]:
@@ -129,6 +199,14 @@ def hit_to_dict(hit: SearchHit, *, detail: str = "standard") -> dict[str, Any]:
     chunk = hit.chunk
     out: dict[str, Any] = {
         "score": hit.score,
+        "retrieval": {
+            "mode": hit.mode.value if hit.mode else None,
+            "backend": hit.backend,
+            "lexical_rank": hit.lexical_rank,
+            "vector_rank": hit.vector_rank,
+            "lexical_score": hit.lexical_score,
+            "vector_score": hit.vector_score,
+        },
         "facts": list(hit.facts),
         "inferences": list(hit.inferences),
         "citation": citation_to_dict(hit.citation),
@@ -186,26 +264,6 @@ def unknown_id_hint(resource_id: str) -> str:
     )
 
 
-def resource_matches_framework(resource: FrontendResource, framework: str | None) -> bool:
-    """True when target framework aliases intersect resource frameworks.
-
-    Empty ``supported_frameworks`` does **not** exclude the resource
-    (unknown ≠ incompatible). Callers should add an inference note when
-    recommending such resources against a target framework.
-    """
-    if not framework:
-        return True
-    target = normalize_framework_token(framework)
-    if not target:
-        return True
-    if not resource.supported_frameworks:
-        return True
-    resource_tokens: set[str] = set()
-    for labeled in resource.supported_frameworks:
-        resource_tokens |= normalize_framework_token(labeled)
-    return bool(target & resource_tokens)
-
-
 def resource_text_blob(resource: FrontendResource) -> str:
     return " ".join(
         [
@@ -218,3 +276,20 @@ def resource_text_blob(resource: FrontendResource) -> str:
             resource.performance_notes or "",
         ]
     ).lower()
+
+
+__all__ = [
+    "READONLY_ANNOTATIONS",
+    "chunk_to_dict",
+    "citation_to_dict",
+    "empty_results_hint",
+    "ensure_ready",
+    "hit_to_dict",
+    "provenance_from_resource",
+    "reset_runtime",
+    "resource_matches_framework",
+    "resource_text_blob",
+    "resource_to_dict",
+    "runtime_health",
+    "unknown_id_hint",
+]
