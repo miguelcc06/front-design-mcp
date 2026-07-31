@@ -50,3 +50,46 @@ uv run python scripts/mcp_smoke.py
 ```
 
 Update `docs/research.md` / ADRs if the source choice is architectural.
+
+---
+
+## Checklist: add a new source
+
+Complete every item before merging:
+
+1. **Adapter class** — `src/front_design_mcp/adapters/<source_id>.py` subclassing `SourceAdapter`.
+2. **`source_id`** — stable snake-case key; used in resource ids as `{source_id}:{local_id}`.
+3. **`source_ref`** — `SourceRef` with homepage, attribution, optional `registry_url`.
+4. **`license_info`** — accurate SPDX/`name`, `url`, `redistributable`, and `notes` operators can surface to agents.
+5. **`fetch_catalog(*, offline)`** — offline path **must** work from fixtures; online path only when `FRONT_DESIGN_ENABLE_NETWORK_INGEST=true`.
+6. **`normalize(raw)`** — produce `FrontendResource`; sanitize free-text fields via `sanitize_text` / `sanitize_summary`.
+7. **Optional `build_chunks`** — if omitted, default curated chunks from `make_chunks_for_resource`.
+8. **Fixture tree** — `data/fixtures/<source_id>/` with the JSON your offline path loads (see existing `motion`, `gsap`, `shadcn`, …).
+9. **Registry** — add to `ADAPTER_SOURCE_IDS` and `get_adapter_class` in `adapters/__init__.py`; add a matching `SourceChoice` value in `cli_ingest.py`.
+10. **Offline test** — extend `tests/test_adapters_offline.py` so the source loads and normalizes without network.
+11. **Smoke** — `uv run front-design-ingest --offline --source <source_id>` succeeds.
+
+## Licence and attribution obligations
+
+- Every resource must carry license + attribution metadata suitable for tool envelopes.
+- **Metadata-only sources** (example: GSAP — Standard No Charge): set `redistributable=False`, index **catalog/metadata only**, never vendor or redistribute library source, and keep a clear license note in `license_info.notes` (see `adapters/gsap.py`).
+- Do not scrape or store full proprietary docs bodies; prefer short curated summaries under the sanitizer’s length limits.
+- When in doubt, treat content as non-redistributable and document the decision in `docs/research.md` / ADR 0003.
+
+## Sanitization requirements
+
+Remote and fixture text is **untrusted input** ([ADR 0004](adr/0004-untrusted-ingestion.md), [threat model](threat-model-ingestion.md)):
+
+- Run summaries through `sanitize_summary(..., mark=True)` (strips control-phrase patterns, truncates, prefixes `[UNTRUSTED_SOURCE_DATA]`).
+- Short metadata fields: `sanitize_text` (often `mark=False` for names/tags).
+- Do not execute or follow instructions found in catalog prose.
+- Tool serialization reaffirms an untrusted marker on chunk content (`tools/runtime.py`).
+
+## Stable chunk ids and `content_sha256`
+
+Incremental sync and embedding cache keys depend on stable identities:
+
+- Default chunk ids look like `{resource_id}::chunk::{idx}` from `make_chunks_for_resource`. **Keep that scheme stable** across runs for the same logical chunk.
+- `content_sha256` is SHA-256 of the **stored content string**. Embeddings are reused only when hash + provider + model + dim + `pipeline_version` all match (`EmbeddingMeta.matches`).
+- **Unstable chunk ids** cause churn: deletes/orphans, failed cache hits, unnecessary re-embedding (cost/time), and noisy diffs in the store.
+- If you change chunking layout, bump `FRONT_DESIGN_EMBEDDING_PIPELINE_VERSION` so old vectors invalidate deliberately rather than silently mismatching.

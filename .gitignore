@@ -29,6 +29,8 @@ uv.lock.bak
 # Data / local store
 data/store/
 *.db
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite3
 
