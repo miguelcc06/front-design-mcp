@@ -72,15 +72,23 @@ Notes:
 - Passwords are **redacted** in `Settings.redacted_database_url()` (logs / safe error context).
 - Related settings (defaults from `config.py`):
   - `FRONT_DESIGN_POSTGRES_STATEMENT_TIMEOUT_MS=15000` — applied as `SET statement_timeout` on connect
-  - `FRONT_DESIGN_POSTGRES_POOL_MIN_SIZE=1` / `FRONT_DESIGN_POSTGRES_POOL_MAX_SIZE=4` — present in config; **`PostgresStore` currently uses a single connection + lock** (pooling not wired; `psycopg_pool` is not a declared dependency)
+  - Connection pooling is **not implemented**: `PostgresStore` uses a single connection guarded by a reentrant lock, so concurrent MCP calls serialize on it. There are deliberately no pool settings to configure.
 
 ## Migrations
 
-Set the URL (and embedding dimensions **before** the first `upgrade` if you are not using the migration default of 1536):
+The vector column is sized **at migration time**, so the embedding model has to be
+decided before the first `upgrade`. Either name the provider and model and let the
+migration derive the dimension, or set the dimension explicitly:
 
 ```bash
 export FRONT_DESIGN_DATABASE_URL=postgresql+psycopg://front_design:front_design@127.0.0.1:5432/YOUR_DB
-export FRONT_DESIGN_EMBEDDING_DIMENSIONS=1536   # must match the embedding model you will use
+
+# Option A — derive the dimension from the model (recommended)
+export FRONT_DESIGN_EMBEDDING_PROVIDER=fastembed
+export FRONT_DESIGN_EMBEDDING_MODEL=BAAI/bge-small-en-v1.5   # 384 dims
+
+# Option B — state it explicitly (required when the provider is `none`)
+export FRONT_DESIGN_EMBEDDING_DIMENSIONS=384
 ```
 
 ```bash
@@ -92,9 +100,20 @@ uv run alembic downgrade base    # drops app tables + helper function; leaves ex
 
 ### Dimension rule
 
-- Column `embeddings.embedding` is created as `vector(N)` where `N` comes from `FRONT_DESIGN_EMBEDDING_DIMENSIONS` at **migration time**. If unset, the migration uses documented default **1536**.
+- Column `embeddings.embedding` is created as `vector(N)` at **migration time**. `N` is
+  `FRONT_DESIGN_EMBEDDING_DIMENSIONS` when set, otherwise the native dimension of
+  `FRONT_DESIGN_EMBEDDING_PROVIDER` + `FRONT_DESIGN_EMBEDDING_MODEL`.
+- There is **no default**. If neither can determine the dimension the migration fails
+  with an actionable error instead of guessing. A wrong guess produces a schema that
+  rejects every vector the provider generates, which is why 1536 is not assumed.
 - The value is written to `store_metadata` under key `embedding_dim`.
-- Changing to a model with a **different** dimension requires a **fresh** schema (downgrade/upgrade or new database) and **full re-embedding**. The store fails fast on mismatch.
+- Changing to a model with a **different** dimension requires a **fresh** schema
+  (downgrade/upgrade or new database) and **full re-embedding**. The store fails fast
+  on mismatch.
+- Changing to a different model with the **same** dimension passes every dimension
+  check, so the search service compares the configured model against the identities
+  actually stored and refuses the vector branch when they disagree, reporting the
+  mismatch through `front_design_health`. Re-run ingest to re-embed.
 
 Exact error raised by `PostgresStore` (constructor / upsert / search):
 

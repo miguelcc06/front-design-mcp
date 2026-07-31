@@ -54,5 +54,5 @@ PostgreSQL no tiene este path: se parte de migraciones Alembic limpias.
 - Un solo código de tools/search puede hablar con `Store`; el backend se elige por config.
 - Quién se queda en SQLite **pierde**: búsqueda vectorial, híbrido RRF, FTS nativo en DB, store multi-proceso compartido vía red, índices HNSW. Gana: cero ops, backup = copiar un fichero, re-derivable desde fixtures.
 - Quién activa Postgres debe instalar `uv sync --extra postgres`, correr `alembic upgrade head`, y (para vectores) un embedding provider real. Ver `docs/postgres.md`.
-- Pool settings (`FRONT_DESIGN_POSTGRES_POOL_*`) existen en config; el `PostgresStore` actual usa **una sola conexión** con lock reentrante (`psycopg_pool` no está en el extra). Pooling = no implementado aún.
+- Pooling **no implementado**: `PostgresStore` usa una sola conexión con lock reentrante (`psycopg_pool` no está en el extra). No se exponen ajustes de pool para no prometer una capacidad ausente; las llamadas MCP concurrentes se serializan.
 - La dimensión del vector en Postgres se fija **en migration time** (`FRONT_DESIGN_EMBEDDING_DIMENSIONS`) y se guarda en `store_metadata`; un cambio de dimensión implica migración fresca + re-embedding (ADR 0006 / `docs/embeddings.md`).

@@ -64,8 +64,6 @@ class Settings(BaseSettings):
         ),
     )
     postgres_statement_timeout_ms: int = Field(default=15_000, ge=0, le=600_000)
-    postgres_pool_min_size: int = Field(default=1, ge=1, le=32)
-    postgres_pool_max_size: int = Field(default=4, ge=1, le=64)
 
     # --- Embeddings ------------------------------------------------------
     embedding_provider: EmbeddingProviderName = Field(
