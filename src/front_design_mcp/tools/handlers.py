@@ -126,7 +126,15 @@ def discover_frontend_resources(
     offset = max(0, int(offset))
     kind_filter = kind or category
     style_tags = [style] if style else None
-    all_resources = store.list_resources(limit=50_000, offset=0)
+    # Push what the store can filter into SQL; the rest (license text, a11y notes,
+    # animation heuristics, maturity) has no column and is filtered in memory.
+    all_resources = store.list_resources(
+        source_id=source_id,
+        kind=kind_filter,
+        tags=list(tags) if tags else None,
+        limit=50_000,
+        offset=0,
+    )
     filtered = _filter_resources(
         all_resources,
         kind=kind_filter,
@@ -195,7 +203,11 @@ def search_frontend_knowledge(
     limit: int = 10,
     detail_level: DetailLevel = "standard",
 ) -> dict[str, Any]:
-    """BM25 search over documentation chunks with scores, citations, provenance."""
+    """Search documentation chunks (lexical, vector, or hybrid) with citations.
+
+    The retrieval strategy depends on the configured backend and embedding
+    provider; the response reports which one actually answered the query.
+    """
     store, search = ensure_ready()
     q = (query or "").strip()
     limit = max(1, min(int(limit), 50))
@@ -209,24 +221,27 @@ def search_frontend_knowledge(
         }
 
     detail = detail_level if detail_level in ("brief", "standard", "full") else "standard"
-    raw_hits = search.search(
+    # All filters, including framework aliases, are resolved before ranking so a
+    # filtered query cannot return a falsely empty page.
+    outcome = search.search_detailed(
         q,
-        limit=max(limit * 3, 20),
+        limit=limit,
         source_id=source_id,
         kind=kind,
         tags=tags,
+        framework=framework,
     )
+    hits_out = [hit_to_dict(hit, detail=detail) for hit in outcome.hits]
 
-    hits_out: list[dict[str, Any]] = []
-    for hit in raw_hits:
-        resource = hit.resource
-        if resource is None:
-            continue
-        if not resource_matches_framework(resource, framework):
-            continue
-        hits_out.append(hit_to_dict(hit, detail=detail))
-        if len(hits_out) >= limit:
-            break
+    facts = [
+        f"{outcome.mode} search on backend={outcome.backend} "
+        f"returned {len(hits_out)} hit(s) for query {q!r}.",
+    ]
+    inferences = list(outcome.notes)
+    if outcome.degraded:
+        inferences.append(
+            "Results are lexical-only: the vector branch was requested but unavailable."
+        )
 
     message = None if hits_out else empty_results_hint(q)
     return {
@@ -234,10 +249,17 @@ def search_frontend_knowledge(
         "message": message,
         "query": q,
         "detail_level": detail,
+        "retrieval": {
+            "mode": outcome.mode,
+            "backend": outcome.backend,
+            "lexical_used": outcome.lexical_used,
+            "vector_used": outcome.vector_used,
+            "degraded": outcome.degraded,
+        },
         "hits": hits_out,
         "total_returned": len(hits_out),
-        "facts": [f"BM25 search returned {len(hits_out)} hit(s) for query {q!r}."],
-        "inferences": [],
+        "facts": facts,
+        "inferences": inferences,
         "store_resources": store.count_resources(),
     }
 
@@ -563,7 +585,7 @@ def recommend_frontend_stack(
     query_parts = [req]
     if aesthetics:
         query_parts.append(aesthetics)
-    # Do not append raw accessibility labels (e.g. "WCAG AA") into BM25 — they
+    # Do not append raw accessibility labels (e.g. "WCAG AA") into the query — they
     # dilute Spanish/natural queries against an English index. Expand via lexicon.
     if performance:
         query_parts.append(performance)
@@ -582,7 +604,9 @@ def recommend_frontend_stack(
             "Query expanded with a fixed ES/EN product lexicon (not a translation service)."
         )
 
-    hits = search.search(query, limit=max(limit * 4, 20))
+    hits = search.search(
+        query, limit=max(limit * 4, 20), framework=target_framework
+    )
     recommendations: list[dict[str, Any]] = []
     seen: set[str] = set()
     sources: list[dict[str, Any]] = []
@@ -617,12 +641,15 @@ def recommend_frontend_stack(
             continue
         if _add_resource(
             r,
-            rationale=f"Lexical match score={hit.score:.3f} against requirements/aesthetics.",
+            rationale=(
+                f"Retrieval match score={hit.score:.3f} "
+                f"({hit.mode.value if hit.mode else 'lexical'})."
+            ),
             citation=citation_to_dict(hit.citation),
         ) and len(recommendations) >= limit:
             break
 
-    # Union BM25 results with intent-targeted find_components picks
+    # Union retrieval results with intent-targeted find_components picks
     if len(recommendations) < limit:
         for intent_key in _intent_search_keys(intents):
             found = find_components(
@@ -653,7 +680,7 @@ def recommend_frontend_stack(
     # Fallback: curated/library anchors via intent detection + known libraries
     if not recommendations:
         inferences.append(
-            "No BM25/intent hits after framework filter — falling back to curated/library anchors."
+            "No retrieval/intent hits after framework filter — using curated/library anchors."
         )
         fallback_ids: list[str] = []
         intent_to_pattern = {
@@ -751,7 +778,7 @@ def recommend_frontend_stack(
         plan.append(f"Performance constraint to verify in app: {performance}")
 
     inferences.append(
-        "Stack ranking is heuristic BM25 guidance; verify compatibility before adopting."
+        "Stack ranking is heuristic retrieval guidance; verify compatibility before adopting."
     )
 
     message = None if recommendations else empty_results_hint(query)
@@ -794,7 +821,7 @@ def find_components(
         }
 
     intent_l = intent_q.lower()
-    hits = search.search(intent_q, limit=max(limit * 5, 30))
+    hits = search.search(intent_q, limit=max(limit * 5, 30), framework=framework)
     scored: dict[str, tuple[float, FrontendResource, dict[str, Any] | None]] = {}
 
     for hit in hits:
@@ -854,7 +881,8 @@ def find_components(
         "total_returned": len(items),
         "facts": [f"Found {len(items)} component/pattern hit(s) for intent {intent_q!r}."],
         "inferences": [
-            "Intent matching combines BM25 and tag/name contains; not a design-system guarantee."
+            "Intent matching combines retrieval ranking with tag/name matching; "
+            "not a design-system guarantee."
         ],
     }
 
@@ -880,7 +908,7 @@ def find_animation_patterns(
         }
 
     search_q = " ".join(p for p in [query, use_case, "animation motion scroll"] if p)
-    hits = search.search(search_q, limit=max(limit * 5, 40))
+    hits = search.search(search_q, limit=max(limit * 5, 40), framework=framework)
     scored: dict[str, tuple[float, FrontendResource, dict[str, Any] | None]] = {}
 
     anim_kinds = {ResourceKind.ANIMATION, ResourceKind.PATTERN, ResourceKind.LIBRARY}

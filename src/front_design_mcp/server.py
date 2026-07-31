@@ -19,6 +19,7 @@ from front_design_mcp.tools.runtime import (
     READONLY_ANNOTATIONS,
     ensure_ready,
     resource_to_dict,
+    runtime_health,
 )
 
 mcp = FastMCP(
@@ -35,21 +36,34 @@ _PING_ANNOTATIONS: ToolAnnotations = READONLY_ANNOTATIONS
 
 @mcp.tool(annotations=_PING_ANNOTATIONS)
 def front_design_ping() -> dict[str, str]:
-    """Health check — returns package version and runtime mode."""
+    """Liveness check — package version, runtime mode, and indexed resource count."""
     settings = get_settings()
     mode = "offline"
     if settings.enable_network_ingest:
         mode = "online-ingest-enabled"
-    # Ensure DB is ready so subsequent tools work out of the box
+    # Ensure the store is ready so subsequent tools work out of the box
     store, _ = ensure_ready(settings=settings)
     return {
         "name": "front_design_mcp",
         "version": __version__,
         "mode": mode,
+        "backend": store.backend,
         "embedding_provider": settings.embedding_provider,
         "status": "ok",
         "resources_indexed": str(store.count_resources()),
     }
+
+
+@mcp.tool(annotations=_PING_ANNOTATIONS)
+def front_design_health() -> dict[str, Any]:
+    """Readiness check — storage backend, effective retrieval mode, and index counts.
+
+    Reports what the server can actually do right now: which backend is open,
+    whether vector and hybrid search are available, which embedding provider is
+    configured, and how many resources, chunks, and embeddings are indexed.
+    Never returns credentials; database URLs are redacted.
+    """
+    return runtime_health()
 
 
 register_tools(mcp)

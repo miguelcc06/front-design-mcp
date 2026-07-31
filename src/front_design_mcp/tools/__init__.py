@@ -31,8 +31,11 @@ def register_tools(mcp: FastMCP) -> None:
         name="search_frontend_knowledge",
         annotations=_ANNOTATIONS,
         description=(
-            "BM25 search over frontend knowledge chunks. Pass query plus optional filters, "
-            "limit, and detail_level (brief|standard|full). Returns scores, citations, provenance."
+            "Search frontend knowledge chunks. Uses BM25 on the SQLite backend and hybrid "
+            "full-text + pgvector retrieval when PostgreSQL and an embedding provider are "
+            "configured. Pass query plus optional filters (kind, framework, tags, source_id), "
+            "limit, and detail_level (brief|standard|full). Returns scores, per-branch ranks, "
+            "the retrieval mode actually used, citations, and provenance."
         ),
     )
     mcp.tool(
