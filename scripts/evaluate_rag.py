@@ -73,9 +73,13 @@ QUERIES: list[dict[str, Any]] = [
 # cannot meet; the metric is still printed. Tighten when retrieval improves.
 ABSTENTION_TOLERANCE = 1.0  # require rate >= 1.0 - tolerance
 CITATION_COVERAGE_FLOOR = 1.0  # every returned hit must carry resource_id + url
-# Ranking floor: refuse invented targets; only catch total collapse (MRR@10 < 0
-# is impossible, so this never fails — metrics are informational).
-MRR_AT_10_FLOOR = 0.0
+# Ranking floors: measured sqlite-bm25 baseline (2026-07-31) was
+# Recall@10=0.696, MRR@10=0.826, nDCG@10=0.701. Floors sit ~20% below that
+# baseline so CI catches collapse without flaking on small-set variance.
+# These are regression guards, not production quality targets.
+RECALL_AT_10_FLOOR = 0.55
+MRR_AT_10_FLOOR = 0.65
+NDCG_AT_10_FLOOR = 0.55
 
 
 @dataclass
@@ -262,6 +266,16 @@ def run_evaluation() -> tuple[list[QueryResult], bool, Any]:
         gate_ok = False
         failures.append(f"MRR@10={mrr10:.4f} < floor={MRR_AT_10_FLOOR}")
 
+    recall10 = ranking.recall_at_k.get(10, 0.0)
+    if recall10 < RECALL_AT_10_FLOOR:
+        gate_ok = False
+        failures.append(f"Recall@10={recall10:.4f} < floor={RECALL_AT_10_FLOOR}")
+
+    ndcg10 = ranking.ndcg_at_k.get(10, 0.0)
+    if ndcg10 < NDCG_AT_10_FLOOR:
+        gate_ok = False
+        failures.append(f"nDCG@10={ndcg10:.4f} < floor={NDCG_AT_10_FLOOR}")
+
     ranking._gate_failures = failures  # type: ignore[attr-defined]
     ranking._gate_ok = gate_ok  # type: ignore[attr-defined]
     return tool_results, gate_ok, ranking
@@ -288,10 +302,13 @@ def print_summary(
     print(
         "Floors: abstention >= "
         f"{1.0 - ABSTENTION_TOLERANCE:.2f} "
-        f"(tolerance={ABSTENTION_TOLERANCE}; measured SQLite abstention is 0.0), "
+        f"(tolerance={ABSTENTION_TOLERANCE}; measured SQLite abstention is 0.0 — "
+        "no validated production abstention threshold), "
         f"citation_coverage >= {CITATION_COVERAGE_FLOOR}, "
         f"uncited_hard_claims == 0. "
-        f"MRR@10 floor={MRR_AT_10_FLOOR} (informational; refuse invented targets)."
+        f"Recall@10>={RECALL_AT_10_FLOOR}, MRR@10>={MRR_AT_10_FLOOR}, "
+        f"nDCG@10>={NDCG_AT_10_FLOOR} "
+        "(~20% below measured sqlite-bm25 baseline; regression guards only)."
     )
     print(
         f"corpus resources={ranking.corpus.get('resources')} "

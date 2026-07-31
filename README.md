@@ -329,15 +329,15 @@ uv run python scripts/mcp_smoke.py
 ## 🔄 Ingestion & Sync
 
 * **Offline fixtures** are the default (`--offline`). Network ingest is **off** until `FRONT_DESIGN_ENABLE_NETWORK_INGEST=true`.
-* Chunks are written **incrementally** by `content_sha256` — unchanged content is skipped.
-* **`--prune`** (default) deletes store rows that disappeared from a source. A source whose adapter **errored is never pruned** (empty is not treated as authoritative).
-* With an embedding provider, `--embed` (default) generates vectors for changed chunks and **reuses** embeddings when content hash + model identity still match; `--no-embed` skips that step.
+* Chunks are written **incrementally** when any persisted field changes (title, content, tags, URL, version, licence — not only `content_sha256`). Adapter-stamped `last_indexed_at` alone does not force a rewrite.
+* **`--prune`** (default) deletes store rows that disappeared from a source. A source whose adapter **errored**, or that had **any item-level normalization failure**, is never pruned (a partial catalog is not authoritative); the report records `prune_skipped_reason` and the run is `partial`.
+* With an embedding provider, `--embed` (default) generates vectors for changed embedded text (`title + content`) and **reuses** embeddings when that fingerprint + model identity still match; tag/URL/licence-only edits do not force re-embedding. `--no-embed` skips that step.
 * Exit codes: **0** success, **1** failed, **2** partial (some sources/items failed while others succeeded).
 
 ## 📊 Evaluation & Benchmarks
 
-* `scripts/evaluate_rag.py` — **CI gate** (SQLite/BM25 only): tool cases + ranking floors, offline, no network, no embeddings.
-* `scripts/benchmark_retrieval.py` — compares `sqlite-bm25`, `postgres-lexical`, `postgres-vector`, and `postgres-hybrid` on the 26 hand-labelled queries (Postgres configs skip when `FRONT_DESIGN_EVAL_DATABASE_URL` is unset).
+* `scripts/evaluate_rag.py` — **CI gate** (SQLite/BM25 only): tool cases + conservative ranking floors (~20% below the measured baseline), offline, no network, no embeddings. Abstention has **no** validated production threshold (measured rate is 0.0).
+* `scripts/benchmark_retrieval.py` — compares `sqlite-bm25`, `postgres-lexical`, `postgres-vector`, and `postgres-hybrid` on the 26 hand-labelled queries (Postgres configs skip when `FRONT_DESIGN_EVAL_DATABASE_URL` is unset). FastEmbed measurements are **not** CI-gated; the `postgres` CI job uses deterministic fake embeddings.
 * Metrics: Recall@K, MRR@K, nDCG@K (resource-level dedup). See the measured table above and the full write-up in [docs/evaluation.md](docs/evaluation.md).
 
 ## 🧪 Development & Tests
@@ -363,7 +363,7 @@ not installed by that command):
 | Offline, no PostgreSQL | 3.11 | **157 passed, 17 skipped** |
 | `FRONT_DESIGN_TEST_DATABASE_URL` set | 3.12 | **174 passed** |
 
-CI runs the offline gate above on **Python 3.11 and 3.12**, plus a separate job against `pgvector/pgvector:pg16` that applies the migrations, verifies they are reproducible from an empty database, and runs `pytest -m postgres`. See [CONTRIBUTING.md](CONTRIBUTING.md) and [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+CI runs the offline gate above on **Python 3.11 and 3.12**, plus a separate job against `pgvector/pgvector:pg16` that applies the migrations, verifies they are reproducible from an empty database, and runs `pytest -m postgres` with **deterministic fake embeddings** (not FastEmbed). See [CONTRIBUTING.md](CONTRIBUTING.md) and [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ## 🚢 Deployment
 
@@ -383,10 +383,11 @@ This project is **not production ready**. Transport is **stdio only** — no HTT
 
 Known limitations (also the near-term roadmap):
 
-* No abstention on unanswerable queries — all configurations return some result
+* No abstention on unanswerable queries — all configurations return some result; there is no validated production abstention threshold
 * Spanish queries score below their English equivalents (PostgreSQL full-text uses the `english` configuration)
 * RRF weights are untuned
-* Connection pooling is not implemented
+* Connection pooling is not implemented (`PostgresStore` uses one locked connection)
+* The PostgreSQL vector column dimension is fixed at migration time; changing model/dim requires a new migration and re-embed
 * BM25 rebuilds the whole corpus in memory at startup
 * Network ingest is off by default and there is no SSRF host allowlist yet
 * stdio transport only — no HTTP, no auth

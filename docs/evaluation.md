@@ -172,11 +172,24 @@ FRONT_DESIGN_EVAL_DATABASE_URL=postgresql+psycopg://user:pass@127.0.0.1:5432/db 
 | Tool cases | all 4 must pass | Existing product regression gate |
 | Citation coverage | ≥ 1.0 | SearchService always attaches resource_id + url |
 | Uncited hard claims | == 0 | Facts hygiene |
-| Correct abstention | ≥ `1.0 - ABSTENTION_TOLERANCE` with **tolerance = 1.0** (floor 0.0) | Measured abstention is 0.0 on SQLite BM25; inventing a positive floor would fail CI without fixing retrieval. Metric is still printed. |
-| MRR@10 | floor 0.0 (informational) | Refuse invented quality targets on a 26-query set |
+| Correct abstention | ≥ `1.0 - ABSTENTION_TOLERANCE` with **tolerance = 1.0** (floor 0.0) | Measured abstention is 0.0 on SQLite BM25. There is **no validated production abstention policy**; inventing a positive floor would fail CI without fixing retrieval. Metric is still printed. |
+| Recall@10 | ≥ 0.55 | ~20% below measured sqlite-bm25 baseline 0.696 (2026-07-31); regression guard only |
+| MRR@10 | ≥ 0.65 | ~20% below measured baseline 0.826; regression guard only |
+| nDCG@10 | ≥ 0.55 | ~20% below measured baseline 0.701; regression guard only |
 
-No committed numeric baseline file — numbers above are from a real run and will
-drift if fixtures or ranking change.
+These ranking floors catch total collapse; they are **not** production quality
+targets on a 26-query set.
+
+## What CI does and does not run
+
+| Path | Embeddings | Role |
+|------|------------|------|
+| `quality` job / `evaluate_rag.py` | none (SQLite BM25) | Offline CI gate |
+| `postgres` job / `pytest -m postgres` | **Deterministic fake** in-process vectors (dim from `FRONT_DESIGN_EMBEDDING_DIMENSIONS`) | Schema, store, ingest, and hybrid plumbing against live pgvector |
+| `benchmark_retrieval.py` with FastEmbed | Real local `fastembed` models | **Measurement only** — recorded in the tables above; **not** CI-gated |
+
+PostgreSQL CI never downloads HuggingFace models. FastEmbed numbers in this doc
+are from manual / local benchmark runs and will not fail the GitHub Actions job.
 
 ## What these numbers do NOT show
 

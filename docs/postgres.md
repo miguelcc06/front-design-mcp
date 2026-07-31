@@ -73,6 +73,11 @@ Notes:
 - Related settings (defaults from `config.py`):
   - `FRONT_DESIGN_POSTGRES_STATEMENT_TIMEOUT_MS=15000` — applied as `SET statement_timeout` on connect
   - Connection pooling is **not implemented**: `PostgresStore` uses a single connection guarded by a reentrant lock, so concurrent MCP calls serialize on it. There are deliberately no pool settings to configure.
+- Vector search SQL always filters by the active embedding identity
+  (provider / model / dim / pipeline_version). If the corpus still holds rows
+  from another identity (for example after a partial re-embed), SearchService
+  refuses the vector branch and degrades to lexical search rather than ranking
+  mixed spaces.
 
 ## Migrations
 
