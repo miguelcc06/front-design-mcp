@@ -461,6 +461,50 @@ def test_search_lexical_blank_query(store: PostgresStore) -> None:
     assert store.search_lexical("  ", filters=SearchFilters.build(), limit=5) == []
 
 
+def test_search_lexical_relaxes_conjunction(store: PostgresStore) -> None:
+    """A natural-language query must not return nothing just because one term is absent.
+
+    ``websearch_to_tsquery`` ANDs every term, so "accessible button gradient"
+    matches no chunk; the OR-relaxed second pass is what keeps recall usable and
+    keeps this backend comparable with BM25 on SQLite.
+    """
+    store.upsert_resources([_resource("r1", source_id="s1", kind="library")])
+    store.upsert_chunks(
+        [
+            _chunk(
+                "c1",
+                "r1",
+                title="Accessible buttons",
+                content="Use semantic button elements for accessibility",
+            )
+        ]
+    )
+
+    strict_terms_all_present = store.search_lexical(
+        "accessible button", filters=SearchFilters.build(), limit=5
+    )
+    assert [h.chunk_id for h in strict_terms_all_present] == ["c1"]
+
+    # "gradient" appears nowhere, so the strict pass yields zero rows.
+    relaxed = store.search_lexical(
+        "accessible button gradient", filters=SearchFilters.build(), limit=5
+    )
+    assert [h.chunk_id for h in relaxed] == ["c1"]
+
+    # Relaxation must still respect pre-ranking filters.
+    assert (
+        store.search_lexical(
+            "accessible button gradient",
+            filters=SearchFilters.build(source_id="other"),
+            limit=5,
+        )
+        == []
+    )
+
+    # A query with no indexable lexemes stays empty rather than matching everything.
+    assert store.search_lexical("!!! ???", filters=SearchFilters.build(), limit=5) == []
+
+
 def test_search_vector_ranked_and_filters(store: PostgresStore) -> None:
     store.upsert_resources(
         [

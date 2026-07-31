@@ -565,41 +565,67 @@ class PostgresStore(Store):
     def search_lexical(
         self, query: str, *, filters: SearchFilters, limit: int
     ) -> list[RankedChunk]:
+        """Full-text search ranked by ``ts_rank_cd``.
+
+        Tries the user's query as written first (``websearch_to_tsquery`` honours
+        quoted phrases and ``-exclusions``), which requires every term to be
+        present. Natural-language queries rarely satisfy that, so a second pass
+        relaxes the conjunction to a disjunction — the same behaviour BM25 gives
+        on the SQLite backend, and what makes the two backends comparable.
+        ``ts_rank_cd`` still ranks documents matching more terms higher.
+        """
         if not query.strip() or filters.excludes_everything or limit <= 0:
             return []
         with self._lock:
             conn = self._require_conn()
-            ts_row = conn.execute(
-                "SELECT websearch_to_tsquery('english', %s)::text AS q",
-                (query,),
-            ).fetchone()
-            if ts_row is None or not ts_row["q"]:
-                return []
-
             where_extra, filter_params = self._filter_clauses(filters, table_alias="r")
             sql = f"""
                 SELECT c.id AS chunk_id,
-                       ts_rank_cd(
-                           c.search_vector,
-                           websearch_to_tsquery('english', %s)
-                       ) AS score
+                       ts_rank_cd(c.search_vector, %s::tsquery) AS score
                 FROM chunks c
                 JOIN resources r ON r.id = c.resource_id
-                WHERE c.search_vector @@ websearch_to_tsquery('english', %s)
+                WHERE c.search_vector @@ %s::tsquery
                 {where_extra}
                 ORDER BY score DESC, c.id ASC
                 LIMIT %s
             """
-            bind: list[Any] = [query, query, *filter_params, limit]
-            rows = conn.execute(sql, bind).fetchall()
-            return [
-                RankedChunk(
-                    chunk_id=str(r["chunk_id"]),
-                    score=float(r["score"]),
-                    rank=i,
-                )
-                for i, r in enumerate(rows, start=1)
-            ]
+            for tsquery in self._tsquery_variants(conn, query):
+                bind: list[Any] = [tsquery, tsquery, *filter_params, limit]
+                rows = conn.execute(sql, bind).fetchall()
+                if rows:
+                    return [
+                        RankedChunk(
+                            chunk_id=str(r["chunk_id"]),
+                            score=float(r["score"]),
+                            rank=i,
+                        )
+                        for i, r in enumerate(rows, start=1)
+                    ]
+            return []
+
+    def _tsquery_variants(self, conn: psycopg.Connection[Any], query: str) -> list[str]:
+        """Strict query first, then an OR-relaxed one. Empty when nothing parses.
+
+        Both strings are produced by PostgreSQL's own parsers and re-bound as
+        parameters cast to ``tsquery``, so no user text reaches SQL unescaped.
+        """
+        row = conn.execute(
+            "SELECT websearch_to_tsquery('english', %s)::text AS strict, "
+            "plainto_tsquery('english', %s)::text AS plain",
+            (query, query),
+        ).fetchone()
+        if row is None:
+            return []
+        variants: list[str] = []
+        strict = row["strict"]
+        if strict:
+            variants.append(str(strict))
+        plain = row["plain"]
+        if plain:
+            relaxed = str(plain).replace(" & ", " | ")
+            if relaxed not in variants:
+                variants.append(relaxed)
+        return variants
 
     def search_vector(
         self,
