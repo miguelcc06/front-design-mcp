@@ -12,6 +12,7 @@ from front_design_mcp.logging_utils import get_logger
 from front_design_mcp.models import Citation, DocumentationChunk, FrontendResource, SearchHit
 from front_design_mcp.search.service import SearchService
 from front_design_mcp.store.sqlite_store import SqliteStore
+from front_design_mcp.tools.frameworks import normalize_framework_token
 
 log = get_logger("tools.runtime")
 
@@ -184,10 +185,23 @@ def unknown_id_hint(resource_id: str) -> str:
 
 
 def resource_matches_framework(resource: FrontendResource, framework: str | None) -> bool:
+    """True when target framework aliases intersect resource frameworks.
+
+    Empty ``supported_frameworks`` does **not** exclude the resource
+    (unknown ≠ incompatible). Callers should add an inference note when
+    recommending such resources against a target framework.
+    """
     if not framework:
         return True
-    fw = framework.lower().strip()
-    return any(fw == f.lower() or fw in f.lower() for f in resource.supported_frameworks)
+    target = normalize_framework_token(framework)
+    if not target:
+        return True
+    if not resource.supported_frameworks:
+        return True
+    resource_tokens: set[str] = set()
+    for labeled in resource.supported_frameworks:
+        resource_tokens |= normalize_framework_token(labeled)
+    return bool(target & resource_tokens)
 
 
 def resource_text_blob(resource: FrontendResource) -> str:

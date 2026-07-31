@@ -130,6 +130,32 @@ ADRs: [0001](adr/0001-fastmcp-stable.md) · [0002](adr/0002-local-hybrid-search.
 
 Package C implementado por Task subagent model `cursor-grok-4.5-high` (Grok 4.5 High). Parent run model: `cursor-grok-4.5-high-fast`. Docs model id: `grok-4.5`.
 
+### Package C-fix — Framework aliases + bilingual recommend/brief
+
+| Campo | Valor |
+|-------|-------|
+| Status | Complete |
+| Implementer | Task subagent `cursor-grok-4.5-high` (Grok 4.5 High) |
+| Orchestrator | Opus (Package C defect review) |
+| Scope | Framework alias matching + ES/EN query expansion + recommend/brief fallbacks |
+
+**Defects fixed:**
+1. `resource_matches_framework` failed for `nextjs` / `next.js` against resources tagged `next`/`react` (substring equality only).
+2. `recommend_frontend_stack` / `build_frontend_brief` returned empty for Spanish (and many natural) queries: BM25 on English index + appending Spanish a11y text → 0 hits; then framework filter removed remaining.
+
+**Decisiones Package C-fix (Orchestrator):**
+1. `normalize_framework_token(s) -> set[str]` in `tools/frameworks.py`; intersection matching; empty `supported_frameworks` does not exclude (unknown ≠ incompatible) + inference note when recommending
+2. Fixed ES/EN lexicon expansion (`tools/lexicon.py`) — not a translation service; detect intents (dashboard/hero/pricing/…) in ES+EN; union BM25 with intent-targeted `find_components`
+3. If still empty after search+filter → fallback curated/library anchors (motion/shadcn/radix), facts vs inferences separated
+4. `build_frontend_brief` always selects intents via bilingual detection (`animado`→animation/hero); smoke brief components non-empty
+5. Tests: `tests/test_framework_aliases.py`, `tests/test_recommend_i18n.py`
+
+**Entregables Package C-fix:**
+- [x] `tools/frameworks.py` + updated `resource_matches_framework`
+- [x] `tools/lexicon.py` query expansion + intent detection
+- [x] recommend/brief handlers: expand → intent union → curated/library fallback
+- [x] Tests for aliases + Spanish SaaS/landing smoke paths
+
 ---
 
 ## Acceptance criteria — Package A

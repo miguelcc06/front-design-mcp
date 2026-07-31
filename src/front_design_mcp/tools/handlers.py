@@ -5,6 +5,11 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from front_design_mcp.models import FrontendResource, ResourceKind
+from front_design_mcp.tools.lexicon import (
+    detect_intents,
+    expand_query_lexicon,
+    select_component_intents,
+)
 from front_design_mcp.tools.runtime import (
     chunk_to_dict,
     citation_to_dict,
@@ -438,6 +443,83 @@ def compare_frontend_options(
     }
 
 
+def _recommendation_item(
+    r: FrontendResource,
+    *,
+    rank: int,
+    rationale: str,
+    target_framework: str | None,
+    citation: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], list[str], list[str]]:
+    """Build one recommendation row; return (item, facts, inferences)."""
+    item_facts = [f"Indexed as {r.kind.value} from {r.source.source_id}"]
+    if r.install_command:
+        item_facts.append(f"Install: {r.install_command}")
+    if r.license:
+        item_facts.append(f"License: {r.license.spdx_id or r.license.name}")
+    item_inferences = [
+        "Fit to requirements is inferred from lexical overlap, not runtime verification.",
+    ]
+    if target_framework and not r.supported_frameworks:
+        item_inferences.append(
+            f"Target framework {target_framework!r} compatibility not verified in index "
+            "(empty supported_frameworks — unknown ≠ incompatible)."
+        )
+    citations = [citation] if citation else [
+        {
+            "resource_id": r.id,
+            "title": r.name,
+            "url": r.docs_url or r.homepage_url,
+            "source_id": r.source.source_id,
+        }
+    ]
+    item = {
+        "rank": rank,
+        "resource": {
+            "id": r.id,
+            "name": r.name,
+            "kind": r.kind.value,
+            "description": r.description[:400],
+            "docs_url": r.docs_url,
+            "install_command": r.install_command,
+            "tags": r.tags,
+        },
+        "rationale": rationale,
+        "facts": item_facts,
+        "inferences": item_inferences,
+        "citations": citations,
+        "provenance": provenance_from_resource(r),
+    }
+    return item, item_facts, item_inferences
+
+
+def _intent_search_keys(intents: list[str]) -> list[str]:
+    """Map detected intents to find_components query strings."""
+    keys: list[str] = []
+    for intent in intents:
+        if intent == "animation":
+            keys.append("hero")
+            continue
+        if intent == "saas":
+            keys.append("dashboard")
+            continue
+        if intent == "landing":
+            keys.append("hero")
+            continue
+        if intent == "scroll":
+            keys.append("scroll storytelling")
+            continue
+        keys.append(intent)
+    # Preserve order, dedupe
+    seen: set[str] = set()
+    out: list[str] = []
+    for k in keys:
+        if k not in seen:
+            seen.add(k)
+            out.append(k)
+    return out
+
+
 def recommend_frontend_stack(
     *,
     requirements: str,
@@ -463,75 +545,166 @@ def recommend_frontend_stack(
     query_parts = [req]
     if aesthetics:
         query_parts.append(aesthetics)
-    if accessibility:
-        query_parts.append(accessibility)
+    # Do not append raw accessibility labels (e.g. "WCAG AA") into BM25 — they
+    # dilute Spanish/natural queries against an English index. Expand via lexicon.
     if performance:
         query_parts.append(performance)
-    query = " ".join(query_parts)
+    raw_query = " ".join(query_parts)
+    query = expand_query_lexicon(raw_query)
+    if accessibility:
+        query = expand_query_lexicon(f"{query} {accessibility}")
+
+    intents = detect_intents(" ".join(filter(None, [req, aesthetics or ""])))
+    facts: list[str] = [f"Search query used: {query!r}"]
+    if intents:
+        facts.append(f"Detected intents: {intents}")
+    inferences: list[str] = []
+    if query != raw_query:
+        inferences.append(
+            "Query expanded with a fixed ES/EN product lexicon (not a translation service)."
+        )
 
     hits = search.search(query, limit=max(limit * 4, 20))
     recommendations: list[dict[str, Any]] = []
     seen: set[str] = set()
-    facts: list[str] = [f"Search query used: {query!r}"]
-    inferences: list[str] = []
     sources: list[dict[str, Any]] = []
 
-    for hit in hits:
-        r = hit.resource
-        if r is None or r.id in seen:
-            continue
+    def _add_resource(
+        r: FrontendResource,
+        *,
+        rationale: str,
+        citation: dict[str, Any] | None = None,
+    ) -> bool:
+        if r.id in seen:
+            return False
         if not resource_matches_framework(r, target_framework):
-            continue
+            return False
         seen.add(r.id)
-        rank = len(recommendations) + 1
-        item_facts = [
-            f"Indexed as {r.kind.value} from {r.source.source_id}",
-        ]
-        if r.install_command:
-            item_facts.append(f"Install: {r.install_command}")
-        if r.license:
-            item_facts.append(f"License: {r.license.spdx_id or r.license.name}")
-        item_inferences = [
-            "Fit to requirements is inferred from lexical overlap, not runtime verification.",
-        ]
-        if target_framework and not r.supported_frameworks:
-            item_inferences.append(
-                f"Target framework {target_framework!r} compatibility not verified in index."
-            )
-        recommendations.append(
-            {
-                "rank": rank,
-                "resource": {
-                    "id": r.id,
-                    "name": r.name,
-                    "kind": r.kind.value,
-                    "description": r.description[:400],
-                    "docs_url": r.docs_url,
-                    "install_command": r.install_command,
-                    "tags": r.tags,
-                },
-                "rationale": (
-                    f"Lexical match score={hit.score:.3f} against requirements/aesthetics."
-                ),
-                "facts": item_facts,
-                "inferences": item_inferences,
-                "citations": [citation_to_dict(hit.citation)] if hit.citation else [],
-                "provenance": provenance_from_resource(r),
-            }
+        item, item_facts, item_inferences = _recommendation_item(
+            r,
+            rank=len(recommendations) + 1,
+            rationale=rationale,
+            target_framework=target_framework,
+            citation=citation,
         )
+        recommendations.append(item)
         sources.append(provenance_from_resource(r))
         facts.extend(item_facts)
         inferences.extend(item_inferences)
-        if len(recommendations) >= limit:
+        return True
+
+    for hit in hits:
+        r = hit.resource
+        if r is None:
+            continue
+        if _add_resource(
+            r,
+            rationale=f"Lexical match score={hit.score:.3f} against requirements/aesthetics.",
+            citation=citation_to_dict(hit.citation),
+        ) and len(recommendations) >= limit:
             break
 
-    # Ensure library anchors appear when relevant
-    libraries = [
+    # Union BM25 results with intent-targeted find_components picks
+    if len(recommendations) < limit:
+        for intent_key in _intent_search_keys(intents):
+            found = find_components(
+                intent=intent_key,
+                framework=target_framework,
+                limit=3,
+            )
+            for item in found.get("items") or []:
+                rid = item.get("id")
+                if not rid or rid in seen:
+                    continue
+                resource = store.get_resource(rid)
+                if resource is None:
+                    continue
+                _add_resource(
+                    resource,
+                    rationale=(
+                        f"Intent-targeted pick for {intent_key!r} "
+                        f"(score={item.get('score', 0):.3f})."
+                    ),
+                    citation=item.get("citation"),
+                )
+                if len(recommendations) >= limit:
+                    break
+            if len(recommendations) >= limit:
+                break
+
+    # Fallback: curated/library anchors via intent detection + known libraries
+    if not recommendations:
+        inferences.append(
+            "No BM25/intent hits after framework filter — falling back to curated/library anchors."
+        )
+        fallback_ids: list[str] = []
+        intent_to_pattern = {
+            "dashboard": "dashboard-shell-pattern",
+            "saas": "dashboard-shell-pattern",
+            "hero": "hero-landing-pattern",
+            "landing": "hero-landing-pattern",
+            "pricing": "pricing-table-pattern",
+            "navbar": "navbar-responsive-pattern",
+            "onboarding": "onboarding-wizard-pattern",
+            "scroll": "scroll-storytelling-pattern",
+            "animation": "hero-landing-pattern",
+        }
+        for intent in intents:
+            pid = intent_to_pattern.get(intent)
+            if pid and pid not in fallback_ids:
+                fallback_ids.append(pid)
+        if not fallback_ids:
+            fallback_ids.append("dashboard-shell-pattern")
+
+        for pid in fallback_ids:
+            resource = store.get_resource(pid)
+            if resource is None:
+                continue
+            _add_resource(
+                resource,
+                rationale=f"Curated fallback anchor for detected intents {intents or ['general']}.",
+            )
+            if len(recommendations) >= limit:
+                break
+
+        # Discover library anchors (motion/shadcn/radix) still separating facts vs inferences
+        preferred_libs = ("motion", "shadcn", "radix", "magicui")
+        libraries = [
+            r
+            for r in store.list_resources(kind="library", limit=100)
+            if resource_matches_framework(r, target_framework)
+        ]
+        # Prefer known source ids / name contains
+        def _lib_rank(r: FrontendResource) -> int:
+            sid = r.source.source_id.lower()
+            blob = f"{r.id} {r.name}".lower()
+            for i, key in enumerate(preferred_libs):
+                if key in sid or key in blob:
+                    return i
+            return len(preferred_libs)
+
+        libraries.sort(key=_lib_rank)
+        for lib in libraries:
+            if len(recommendations) >= limit:
+                break
+            if _add_resource(
+                lib,
+                rationale=(
+                    f"Library anchor from index (source={lib.source.source_id}); "
+                    "compatibility inferred from tags/frameworks, not verified at runtime."
+                ),
+            ):
+                inferences.append(
+                    f"{lib.id}: included as discoverable library anchor (inference)."
+                )
+
+    # Note remaining libraries even when we already have recommendations
+    libraries_note = [
         r
         for r in store.list_resources(kind="library", limit=50)
         if resource_matches_framework(r, target_framework)
     ]
-    for lib in libraries[:3]:
+    for lib in libraries_note[:3]:
         if lib.id in seen:
             continue
         facts.append(f"Available library in index: {lib.id}")
@@ -826,34 +999,44 @@ def build_frontend_brief(
         performance=performance,
         limit=6,
     )
-    component_intents = [
-        "hero",
-        "navbar",
-        "pricing",
-        "dashboard",
-        "onboarding",
-        "scroll storytelling",
-    ]
-    # Pick intents that lexically touch the product description
-    desc_l = desc.lower()
-    selected = [i for i in component_intents if any(tok in desc_l for tok in i.split())]
-    if not selected:
-        selected = ["hero", "navbar", "onboarding"]
+
+    # Bilingual intent selection (hero/pricing loanwords + ES triggers like "animado")
+    selected = select_component_intents(desc)
+    facts_extra = [f"Selected component intents (bilingual): {selected}"]
 
     components: list[dict[str, Any]] = []
+    seen_component_ids: set[str] = set()
     for intent in selected:
         found = find_components(intent=intent, framework=target_framework, limit=2)
         for item in found.get("items") or []:
+            cid = item.get("id")
+            if cid and cid in seen_component_ids:
+                continue
+            if cid:
+                seen_component_ids.add(cid)
             components.append({"intent": intent, **item})
 
+    # Ensure non-empty components for briefs that mention surfaces (hero/pricing/…)
+    if not components:
+        for intent in ("hero", "pricing", "navbar"):
+            found = find_components(intent=intent, framework=target_framework, limit=1)
+            for item in found.get("items") or []:
+                components.append({"intent": intent, **item})
+            if components:
+                break
+
+    motion_query = aesthetics or expand_query_lexicon(desc) or "scroll microinteraction"
+    if "animado" in desc.lower() or "animation" in detect_intents(desc):
+        motion_query = expand_query_lexicon(f"{motion_query} animado animation motion")
+
     motion = find_animation_patterns(
-        query=aesthetics or "scroll microinteraction",
+        query=motion_query,
         use_case=desc[:200],
         framework=target_framework,
         limit=4,
     )
 
-    facts = list(stack_resp.get("facts") or [])
+    facts = list(stack_resp.get("facts") or []) + facts_extra
     inferences = list(stack_resp.get("inferences") or [])
     facts.append(f"Indexed store has {store.count_resources()} resources.")
     inferences.extend(
@@ -895,6 +1078,7 @@ def build_frontend_brief(
     if performance:
         acceptance.append(f"Meets stated performance constraint: {performance}")
 
+    expanded_probe = expand_query_lexicon(desc)
     return {
         "ok": True,
         "product_description": desc,
@@ -926,7 +1110,7 @@ def build_frontend_brief(
         "facts": facts,
         "inferences": inferences,
         "search_probe": {
-            "sample_query": desc[:80],
-            "hit_count": len(search.search(desc, limit=5)),
+            "sample_query": expanded_probe[:80],
+            "hit_count": len(search.search(expanded_probe, limit=5)),
         },
     }
