@@ -228,6 +228,27 @@ class Store(ABC):
     def count_embeddings(self, *, model: EmbeddingModelRef | None = None) -> int:
         """Number of stored embeddings, optionally for one model identity."""
 
+    def embedding_models(self) -> list[EmbeddingModelRef]:
+        """Distinct embedding identities present in the store.
+
+        Lets callers detect that the configured provider is not the one that
+        produced the stored vectors. A same-dimension model swap passes every
+        dimension check while making similarity scores meaningless, so this is
+        the only signal that catches it.
+        """
+        raw = self.stats().get("embedding_models") or []
+        models: list[EmbeddingModelRef] = []
+        for entry in raw:
+            models.append(
+                EmbeddingModelRef(
+                    provider=str(entry["provider"]),
+                    model=str(entry["model"]),
+                    dim=int(entry["dim"]),
+                    pipeline_version=int(entry["pipeline_version"]),
+                )
+            )
+        return models
+
     # --- filter resolution -----------------------------------------------
 
     def resolve_filtered_chunk_ids(self, filters: SearchFilters) -> frozenset[str] | None:

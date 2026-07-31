@@ -428,7 +428,7 @@ def test_fastembed_with_injected_model() -> None:
 def test_fastembed_multilingual_model_dim() -> None:
     fake = _FakeFastEmbedModel(dim=384)
     provider = FastEmbedEmbeddingProvider(
-        model_name="intfloat/multilingual-e5-small",
+        model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
         model=fake,
     )
     assert provider.model_ref.dim == 384

@@ -22,10 +22,17 @@ logger = get_logger(__name__)
 
 DEFAULT_FASTEMBED_MODEL = "BAAI/bge-small-en-v1.5"
 
-# Small table of known native dimensions — do not invent entries.
+# Native output dimensions, verified against TextEmbedding.list_supported_models()
+# with fastembed 0.7. Do not add an entry without checking that fastembed actually
+# serves the model: an entry here that fastembed rejects turns a configuration
+# mistake into a runtime failure during ingest.
 _FASTEMBED_NATIVE_DIMS: dict[str, int] = {
     "BAAI/bge-small-en-v1.5": 384,
-    "intfloat/multilingual-e5-small": 384,
+    "sentence-transformers/all-MiniLM-L6-v2": 384,
+    # Multilingual options, useful because this server answers Spanish queries.
+    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2": 384,
+    "sentence-transformers/paraphrase-multilingual-mpnet-base-v2": 768,
+    "intfloat/multilingual-e5-large": 1024,
 }
 
 

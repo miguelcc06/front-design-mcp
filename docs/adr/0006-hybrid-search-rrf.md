@@ -62,7 +62,7 @@ La dimensión se fija en `alembic upgrade` desde `FRONT_DESIGN_EMBEDDING_DIMENSI
 - **Pesos RRF sin tunear** — defaults 1.0/1.0; no hay evaluación publicada que los justifique.
 - **SQLite sin rama vectorial** — híbrido imposible en ese backend; `resolve_mode` siempre acaba en lexical si no hay vector nativo.
 - **BM25 rebuildea el corpus entero en memoria** al startup / tras rebuild (`LexicalBM25Index.rebuild`) — O(corpus); no usar por query.
-- FTS Postgres usa config `'english'`; queries en español dependen más de la rama vectorial (p. ej. `intfloat/multilingual-e5-small` vía fastembed) cuando está disponible.
+- FTS Postgres usa config `'english'`; queries en español dependen más de la rama vectorial (p. ej. `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` vía fastembed) cuando está disponible.
 
 ### Config relacionada
 

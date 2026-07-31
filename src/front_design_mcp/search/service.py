@@ -70,6 +70,7 @@ class SearchService:
         self._index: LexicalBM25Index | None = None if self._native_lexical else LexicalBM25Index()
         self._resource_cache: dict[str, FrontendResource] = {}
         self._built = False
+        self._vector_block_reason: str | None = None
 
     # --- index lifecycle -------------------------------------------------
 
@@ -81,12 +82,36 @@ class SearchService:
         """
         resources = self._store.list_resources(limit=1_000_000)
         self._resource_cache = {r.id: r for r in resources}
+        self._vector_block_reason = self._check_embedding_compatibility()
         self._built = True
         if self._index is None:
             return self._store.count_chunks()
         chunks = self._store.list_chunks(limit=1_000_000)
         self._index.rebuild(chunks)
         return len(chunks)
+
+    def _check_embedding_compatibility(self) -> str | None:
+        """Reason the vector branch must not run, or None when it is safe.
+
+        Comparing a query vector against documents embedded by a *different*
+        model produces plausible-looking nonsense, and a same-dimension swap
+        passes every dimension check. Refusing is the honest behaviour.
+        """
+        if not self._native_vector or not self._embedder.enabled:
+            return None
+        stored = self._store.embedding_models()
+        if not stored:
+            return None
+        wanted = self._embedder.model_ref
+        if any(model == wanted for model in stored):
+            return None
+        present = ", ".join(sorted(model.key for model in stored))
+        return (
+            f"Stored embeddings were produced by {present}, but the configured "
+            f"provider is {wanted.key}. Re-embed the corpus (front-design-ingest) "
+            "or configure the original model; comparing vectors across models is "
+            "not meaningful."
+        )
 
     def _ensure_built(self) -> None:
         if not self._built:
@@ -95,8 +120,12 @@ class SearchService:
     # --- mode resolution -------------------------------------------------
 
     def resolve_mode(self) -> RetrievalMode:
-        """Effective retrieval mode given backend, provider, and configuration."""
-        vector_possible = self._native_vector and self._embedder.enabled
+        """Effective retrieval mode given backend, provider, and stored vectors."""
+        vector_possible = (
+            self._native_vector
+            and self._embedder.enabled
+            and self._vector_block_reason is None
+        )
         if self._search_mode == "lexical":
             return RetrievalMode.LEXICAL
         if self._search_mode == "vector":
@@ -117,6 +146,7 @@ class SearchService:
             "embedding_provider": self._embedder.model_ref.provider,
             "embedding_model": self._embedder.model_ref.model,
             "embedding_dim": self._embedder.model_ref.dim or None,
+            "embedding_mismatch": self._vector_block_reason,
             "rrf_k": self._rrf_k,
         }
 
@@ -167,6 +197,10 @@ class SearchService:
         self, query: str, filters: SearchFilters, limit: int, notes: list[str]
     ) -> list[RankedChunk]:
         if not self._native_vector or not self._embedder.enabled:
+            return []
+        if self._vector_block_reason is not None:
+            notes.append(f"Vector branch unavailable: {self._vector_block_reason}")
+            log.warning("vector_branch_model_mismatch")
             return []
         try:
             embedding = self._embedder.embed_query(query)

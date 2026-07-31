@@ -40,12 +40,23 @@ Optional: `FRONT_DESIGN_EMBEDDING_BASE_URL` for OpenAI-compatible endpoints.
 
 From `embeddings/fastembed_provider.py`:
 
-| Model | Dim |
-|-------|-----|
-| `BAAI/bge-small-en-v1.5` (default) | 384 |
-| `intfloat/multilingual-e5-small` | 384 |
+| Model | Dim | Notes |
+|-------|-----|-------|
+| `BAAI/bge-small-en-v1.5` (default) | 384 | English; smallest download |
+| `sentence-transformers/all-MiniLM-L6-v2` | 384 | English |
+| `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` | 384 | Multilingual |
+| `sentence-transformers/paraphrase-multilingual-mpnet-base-v2` | 768 | Multilingual, larger |
+| `intfloat/multilingual-e5-large` | 1024 | Multilingual, largest |
 
-FastEmbed dimensions are **fixed** per known model (mismatch with an override is an error). The multilingual model is useful because this project answers Spanish queries while Postgres FTS uses the `english` text search config.
+Every entry was checked against `TextEmbedding.list_supported_models()`; a model
+listed here that fastembed does not serve would fail during ingest rather than at
+configuration time.
+
+FastEmbed dimensions are **fixed** per model, so an override that disagrees is an
+error. A multilingual model is worth considering because this project answers
+Spanish queries while the PostgreSQL full-text index uses the `english` text
+search configuration — but note that changing model changes the dimension, which
+requires a fresh migration and a full re-embed (see `docs/postgres.md`).
 
 ## Dimension resolution
 

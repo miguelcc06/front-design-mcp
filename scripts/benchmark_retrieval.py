@@ -32,6 +32,9 @@ HARD_COMPAT = re.compile(
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_QUERIES = REPO_ROOT / "data" / "eval" / "queries.json"
+# Overridden by FRONT_DESIGN_EMBEDDING_MODEL; must match whatever produced the
+# vectors stored in the database being measured.
+DEFAULT_VECTOR_MODEL = "BAAI/bge-small-en-v1.5"
 EVAL_DATABASE_URL_ENV = "FRONT_DESIGN_EVAL_DATABASE_URL"
 
 CONFIG_IDS = (
@@ -300,14 +303,21 @@ def build_postgres(
     from front_design_mcp.store.factory import create_store
 
     needs_vectors = search_mode in {"vector", "hybrid"}
+    # Honour the configured provider/model: measuring with a different model
+    # than the one that produced the stored vectors is meaningless, and the
+    # dimension check alone does not catch a same-dimension swap.
+    provider = os.environ.get("FRONT_DESIGN_EMBEDDING_PROVIDER", "").strip() or "fastembed"
+    model = (
+        os.environ.get("FRONT_DESIGN_EMBEDDING_MODEL", "").strip() or DEFAULT_VECTOR_MODEL
+    )
     settings = Settings(
         data_dir=_workspace_data_dir(),
         enable_network_ingest=False,
         store_backend="postgres",
         database_url=database_url,
-        embedding_provider="fastembed" if needs_vectors else "none",
-        embedding_model="BAAI/bge-small-en-v1.5" if needs_vectors else None,
-        search_mode=search_mode,  # type: ignore[arg-type]
+        embedding_provider=provider if needs_vectors else "none",  # type: ignore[arg-type]  # validated by Settings
+        embedding_model=model if needs_vectors else None,
+        search_mode=search_mode,  # type: ignore[arg-type]  # validated by Settings
     )
     store = create_store(settings)
     store.open()

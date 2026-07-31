@@ -117,6 +117,42 @@ Single machine, cold-ish process, 26 labelled queries, corpus 90/221/221.
 Provider for vector/hybrid: `fastembed` / `BAAI/bge-small-en-v1.5` / dim=384 /
 `rrf_k=60`.
 
+### Multilingual embedding model (measured 2026-07-31)
+
+The query set mixes English and Spanish, and the default model is English-only.
+Re-embedding the same corpus with a multilingual model measurably improves
+ranking. Same query set, same `rrf_k=60`, dim=384, separate database:
+
+| config | Recall@5 | Recall@10 | MRR@5 | MRR@10 | nDCG@5 | nDCG@10 |
+|--------|----------|-----------|-------|--------|--------|---------|
+| postgres-vector (multilingual) | 0.841 | 0.870 | 0.822 | 0.822 | 0.757 | 0.770 |
+| postgres-hybrid (multilingual) | 0.804 | 0.899 | 0.913 | 0.920 | 0.808 | 0.846 |
+
+Model: `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`.
+
+Hybrid with the multilingual model is the best configuration measured here
+(MRR@10 0.920 and nDCG@10 0.846 versus 0.899 and 0.823 with the English model).
+The default stays `BAAI/bge-small-en-v1.5` because it is a much smaller download
+and the indexed documentation is English; switching is a documented option, not
+an automatic upgrade. Changing model changes nothing about the dimension here
+(both are 384) but it does invalidate stored vectors — see the model-mismatch
+note below.
+
+Reproduce with:
+
+```bash
+FRONT_DESIGN_EMBEDDING_PROVIDER=fastembed \
+FRONT_DESIGN_EMBEDDING_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 \
+FRONT_DESIGN_EVAL_DATABASE_URL=postgresql+psycopg://user:pass@127.0.0.1:5432/db \
+  uv run python scripts/benchmark_retrieval.py --markdown \
+    --config postgres-vector --config postgres-hybrid
+```
+
+> The benchmark reads `FRONT_DESIGN_EMBEDDING_PROVIDER` and
+> `FRONT_DESIGN_EMBEDDING_MODEL`. Measuring with a model other than the one that
+> produced the stored vectors is meaningless; the service now refuses the vector
+> branch in that case and reports the mismatch instead of returning nonsense.
+
 ### Observed behaviour (same run)
 
 - **Vectors beat BM25** on typos (`acordion`, `toolti`) and overall recall.
