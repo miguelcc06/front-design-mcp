@@ -6,9 +6,10 @@
 |-----|----------|-------|
 | Parent Cloud Agent run model (Cursor run-info) | `cursor-grok-4.5-high-fast` | Evidencia: `cursor-cloud` `run-info` → `originalModelName` |
 | Production implementer (Package A Task subagent) | `cursor-grok-4.5-high` | Grok escribe **todos** los archivos de producción de este paquete |
+| Production implementer (Package B Task subagent) | `cursor-grok-4.5-high` | Adapters reales, fixtures, ingest, BM25 search service |
 | Official Cursor docs model id | `grok-4.5` | https://cursor.com/docs/evals.md · https://cursor.com/docs/models/grok-4-5.md |
 
-**Nota de identidad (requerida):** el usuario solicitó Opus-as-orchestrator / Grok-as-producer. Los archivos de producción de **Package A** son escritos por **Grok 4.5 High** (`cursor-grok-4.5-high`). El parent Cloud Agent reporta `cursor-grok-4.5-high-fast` vía run-info.
+**Nota de identidad (requerida):** el usuario solicitó Opus-as-orchestrator / Grok-as-producer. Los archivos de producción de **Package A** y **Package B** son escritos por **Grok 4.5 High** (`cursor-grok-4.5-high`). El parent Cloud Agent reporta `cursor-grok-4.5-high-fast` vía run-info.
 
 Run URL (parent): https://cursor.com/agents/bc-d81febe8-2691-4517-a54e-3ea28e317601  
 Branch: `cursor/front-design-mcp-v1-7601`  
@@ -33,7 +34,7 @@ ADRs: [0001](adr/0001-fastmcp-stable.md) · [0002](adr/0002-local-hybrid-search.
 
 ## Delegation log
 
-### Package A — Foundation (este paquete)
+### Package A — Foundation (complete)
 
 | Campo | Valor |
 |-------|-------|
@@ -50,23 +51,53 @@ ADRs: [0001](adr/0001-fastmcp-stable.md) · [0002](adr/0002-local-hybrid-search.
 - [x] `docs/research.md`, `docs/orchestration.md`, ADRs 0001–0004
 - [x] `data/fixtures/README.md`, `configs/*.mcp.json.example`
 
-### Package B — Adapters + ingest (pendiente)
+### Package B — Adapters + ingest (este paquete)
 
-- Implementar adapters reales (motion, magicui, shadcn, radix, gsap metadata)
-- Fixtures offline + CLI ingest funcional
-- Poblar SQLite desde fixtures / network (flag)
+| Campo | Valor |
+|-------|-------|
+| Status | Complete (validation + commit) |
+| Implementer | Task subagent `cursor-grok-4.5-high` (Grok 4.5 High) |
+| Orchestrator | Opus (delegation); parent run model `cursor-grok-4.5-high-fast` |
+| Scope | Real adapters + offline fixtures + ingest pipeline + SqliteStore filters + BM25 SearchService + unit tests |
+
+**Decisiones Package B (Orchestrator):**
+1. Offline-first fixtures under `data/fixtures/{motion,magicui,shadcn,radix,gsap}/`
+2. Adapters implement `SourceAdapter` fully; prefer fixtures when offline; online uses httpx with timeouts/retries; sanitize all text; fail in isolation
+3. Magic UI parses `registry.json` shape; map `registry:ui` → component; examples → pattern/example
+4. shadcn parses index list; install `npx shadcn@latest add {name}`
+5. Motion curated catalog (no HTML scrape); MIT; `npm install motion`
+6. Radix curated primitives ≥10; MIT; `@radix-ui/react-*`
+7. GSAP metadata only; Standard No Charge License; `redistributable=false`
+8. Documentation chunks (1–3) per resource with `content_sha256`; marked untrusted; <1500 chars
+9. `ingest/pipeline.py` → `run_ingest(sources, online) -> IngestReport`
+10. CLI wired to pipeline (`--source`, `--offline/--online`, report summary/JSON)
+11. SqliteStore filters (kind, source_id, tags); lazy/auto-open; recreate-OK schema
+12. `search/service.py` loads chunks + BM25 + filters → `SearchHit` + `Citation`
+13. `uv run front-design-ingest --offline` builds `data/store/front_design.db`
+14. Tests: `test_sanitize`, `test_adapters_offline`, `test_ingest_offline`
+
+**Entregables Package B:**
+- [x] Fixtures JSON committed for all five sources
+- [x] Adapters: motion, magicui, shadcn, radix, gsap
+- [x] `adapters/common.py` (fixtures, httpx retries, sanitize, chunks)
+- [x] `ingest/pipeline.py` + CLI wiring
+- [x] `search/service.py`
+- [x] SqliteStore + Settings (`resolve_db_path` → `./data/store/front_design.db`)
+- [x] Unit tests under `tests/`
+- [x] `server.py` tool-name comment list corrected for Package C product brief
 
 ### Package C — MCP tools (pendiente)
 
-Ocho tools (listados en `server.py`):
-1. `front_design_search`
-2. `front_design_get_resource`
-3. `front_design_list_sources`
-4. `front_design_compare`
-5. `front_design_recommend`
-6. `front_design_get_docs_chunk`
-7. `front_design_brief`
-8. `front_design_attribution`
+Ocho tools (nombres exactos del product brief; corrección Orchestrator):
+1. `discover_frontend_resources`
+2. `search_frontend_knowledge`
+3. `get_resource_details`
+4. `compare_frontend_options`
+5. `recommend_frontend_stack`
+6. `find_components`
+7. `find_animation_patterns`
+8. `build_frontend_brief`
+Plus keep `front_design_ping`.
 
 ### Package D+ — README completo, tests E2E, polish (pendiente)
 
@@ -89,4 +120,17 @@ Ocho tools (listados en `server.py`):
 | 11 | `.agents/skills/mcp-builder/` y `skills-lock.json` intactos | ☑ |
 | 12 | Commit + push a `cursor/front-design-mcp-v1-7601` | ☑ |
 
-Package A implementado por Task subagent model `cursor-grok-4.5-high` (Grok 4.5 High). Parent run model: `cursor-grok-4.5-high-fast`. Docs model id: `grok-4.5`.
+## Acceptance criteria — Package B
+
+| # | Criterio | OK |
+|---|----------|----|
+| 1 | `uv sync --all-extras` | ☑ |
+| 2 | `uv run ruff check src tests` limpio | ☑ |
+| 3 | `uv run front-design-ingest --offline` popula SQLite | ☑ |
+| 4 | `uv run pytest -q` pasa | ☑ |
+| 5 | Store resources/chunks counts > 0 | ☑ |
+| 6 | Fixtures committed; db gitignored | ☑ |
+| 7 | `.agents/skills/mcp-builder/` y `skills-lock.json` intactos | ☑ |
+| 8 | Commit + push a `cursor/front-design-mcp-v1-7601` | ☑ |
+
+Package B implementado por Task subagent model `cursor-grok-4.5-high` (Grok 4.5 High). Parent run model: `cursor-grok-4.5-high-fast`. Docs model id: `grok-4.5`.

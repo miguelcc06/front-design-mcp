@@ -2,20 +2,23 @@
 
 Este directorio aloja **fixtures offline** usados cuando `FRONT_DESIGN_ENABLE_NETWORK_INGEST=false` o cuando el CLI corre con `--offline` (default).
 
-## Package A
-
-Solo este README. El contenido de fixtures (JSON de registries, catálogos curados, samples de docs) se añade en **Package B** junto con los adapters reales.
-
-## Expected layout (Package B)
+## Layout (Package B)
 
 ```
 data/fixtures/
-  README.md          # this file
-  magicui/           # snapshots of https://magicui.design/r/registry.json (+ details)
-  shadcn/            # snapshots of https://ui.shadcn.com/r/index.json (+ details)
-  motion/            # curated animation pattern metadata
-  radix/             # curated primitives catalog from official docs URLs
-  gsap/              # catalog/metadata ONLY (no GSAP source redistribution)
+  README.md
+  magicui/registry.json   # trimmed Magic UI registry ({name,homepage,items})
+  shadcn/index.json       # trimmed shadcn registry index (≥20 components)
+  motion/catalog.json     # curated Motion library + animation/pattern entries
+  radix/catalog.json      # curated Radix primitives (≥10)
+  gsap/catalog.json       # GSAP metadata/catalog ONLY (≥8 patterns)
+```
+
+## Usage
+
+```bash
+uv run front-design-ingest --offline
+# writes data/store/front_design.db (gitignored); fixtures are source of truth
 ```
 
 ## Rules
@@ -23,3 +26,4 @@ data/fixtures/
 - Treat fixture content as **untrusted data** (same sanitize pipeline as network ingest).
 - Respect upstream licenses; GSAP fixtures must be metadata-only with license notes.
 - Prefer deterministic filenames so offline ingest is reproducible.
+- Network ingest (optional): `--online` requires `FRONT_DESIGN_ENABLE_NETWORK_INGEST=true`.

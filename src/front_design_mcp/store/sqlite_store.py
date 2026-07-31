@@ -93,11 +93,15 @@ def _loads(raw: str | None, default: Any) -> Any:
 class SqliteStore(Store):
     """Minimal SQLite store that can open a DB and upsert/list resources & chunks."""
 
-    def __init__(self, db_path: Path | str) -> None:
+    def __init__(self, db_path: Path | str, *, auto_open: bool = True) -> None:
         self.db_path = Path(db_path)
         self._conn: sqlite3.Connection | None = None
+        if auto_open:
+            self.open()
 
     def open(self) -> None:
+        if self._conn is not None:
+            return
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(self.db_path))
         self._conn.row_factory = sqlite3.Row
@@ -111,7 +115,8 @@ class SqliteStore(Store):
 
     def _require_conn(self) -> sqlite3.Connection:
         if self._conn is None:
-            raise RuntimeError("SqliteStore is not open; call open() first")
+            self.open()
+        assert self._conn is not None
         return self._conn
 
     def upsert_resource(self, resource: FrontendResource) -> None:
@@ -181,7 +186,8 @@ class SqliteStore(Store):
         *,
         source_id: str | None = None,
         kind: str | None = None,
-        limit: int = 100,
+        tags: list[str] | None = None,
+        limit: int = 10_000,
         offset: int = 0,
     ) -> list[FrontendResource]:
         conn = self._require_conn()
@@ -199,7 +205,13 @@ class SqliteStore(Store):
             f"SELECT * FROM resources {where} ORDER BY name LIMIT ? OFFSET ?",
             params,
         ).fetchall()
-        return [self._row_to_resource(r) for r in rows]
+        resources = [self._row_to_resource(r) for r in rows]
+        if tags:
+            wanted = {t.lower() for t in tags}
+            resources = [
+                r for r in resources if wanted.intersection({t.lower() for t in r.tags})
+            ]
+        return resources
 
     def upsert_chunk(self, chunk: DocumentationChunk) -> None:
         conn = self._require_conn()
@@ -246,7 +258,7 @@ class SqliteStore(Store):
         self,
         *,
         resource_id: str | None = None,
-        limit: int = 500,
+        limit: int = 50_000,
         offset: int = 0,
     ) -> list[DocumentationChunk]:
         conn = self._require_conn()
@@ -261,6 +273,22 @@ class SqliteStore(Store):
                 (limit, offset),
             ).fetchall()
         return [self._row_to_chunk(r) for r in rows]
+
+    def count_resources(self, *, source_id: str | None = None) -> int:
+        conn = self._require_conn()
+        if source_id is not None:
+            row = conn.execute(
+                "SELECT COUNT(*) AS n FROM resources WHERE source_id = ?",
+                (source_id,),
+            ).fetchone()
+        else:
+            row = conn.execute("SELECT COUNT(*) AS n FROM resources").fetchone()
+        return int(row["n"]) if row else 0
+
+    def count_chunks(self) -> int:
+        conn = self._require_conn()
+        row = conn.execute("SELECT COUNT(*) AS n FROM chunks").fetchone()
+        return int(row["n"]) if row else 0
 
     def upsert_embedding_stub(
         self,

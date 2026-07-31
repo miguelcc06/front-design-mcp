@@ -1,0 +1,492 @@
+{
+  "name": "magicui",
+  "homepage": "https://magicui.design",
+  "items": [
+    {
+      "name": "magic-card",
+      "type": "registry:ui",
+      "title": "Magic Card",
+      "description": "A spotlight effect that follows your mouse cursor and highlights borders on hover.",
+      "dependencies": [
+        "motion",
+        "next-themes"
+      ],
+      "files": [
+        {
+          "path": "registry/magicui/magic-card.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "marquee",
+      "type": "registry:ui",
+      "title": "Marquee",
+      "description": "An infinite scrolling component that can be used to display text, images, or videos.",
+      "cssVars": {
+        "theme": {
+          "animate-marquee": "marquee var(--duration) infinite linear",
+          "animate-marquee-vertical": "marquee-vertical var(--duration) linear infinite"
+        }
+      },
+      "css": {
+        "@keyframes marquee": {
+          "from": {
+            "transform": "translateX(0)"
+          },
+          "to": {
+            "transform": "translateX(calc(-100% - var(--gap)))"
+          }
+        },
+        "@keyframes marquee-vertical": {
+          "from": {
+            "transform": "translateY(0)"
+          },
+          "to": {
+            "transform": "translateY(calc(-100% - var(--gap)))"
+          }
+        }
+      },
+      "files": [
+        {
+          "path": "registry/magicui/marquee.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "globe",
+      "type": "registry:ui",
+      "title": "Globe",
+      "description": "An autorotating, interactive, and highly performant globe made using WebGL.",
+      "dependencies": [
+        "cobe@^0.6.4",
+        "motion"
+      ],
+      "files": [
+        {
+          "path": "registry/magicui/globe.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "meteors",
+      "type": "registry:ui",
+      "title": "Meteors",
+      "description": "A meteor shower effect.",
+      "cssVars": {
+        "theme": {
+          "animate-meteor": "meteor 5s linear infinite"
+        }
+      },
+      "css": {
+        "@keyframes meteor": {
+          "0%": {
+            "transform": "rotate(var(--angle)) translateX(0)",
+            "opacity": "1"
+          },
+          "70%": {
+            "opacity": "1"
+          },
+          "100%": {
+            "transform": "rotate(var(--angle)) translateX(-500px)",
+            "opacity": "0"
+          }
+        }
+      },
+      "files": [
+        {
+          "path": "registry/magicui/meteors.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "hero-video-dialog",
+      "type": "registry:ui",
+      "title": "Hero Video Dialog",
+      "description": "A hero video dialog component.",
+      "dependencies": [
+        "motion"
+      ],
+      "files": [
+        {
+          "path": "registry/magicui/hero-video-dialog.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "aurora-text",
+      "type": "registry:ui",
+      "title": "Aurora Text",
+      "description": "A beautiful aurora text effect",
+      "cssVars": {
+        "theme": {
+          "animate-aurora": "aurora 8s ease-in-out infinite alternate"
+        }
+      },
+      "css": {
+        "@keyframes aurora": {
+          "0%": {
+            "background-position": "0% 50%",
+            "transform": "rotate(-5deg) scale(0.9)"
+          },
+          "25%": {
+            "background-position": "50% 100%",
+            "transform": "rotate(5deg) scale(1.1)"
+          },
+          "50%": {
+            "background-position": "100% 50%",
+            "transform": "rotate(-3deg) scale(0.95)"
+          },
+          "75%": {
+            "background-position": "50% 0%",
+            "transform": "rotate(3deg) scale(1.05)"
+          },
+          "100%": {
+            "background-position": "0% 50%",
+            "transform": "rotate(-5deg) scale(0.9)"
+          }
+        }
+      },
+      "files": [
+        {
+          "path": "registry/magicui/aurora-text.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "morphing-text",
+      "type": "registry:ui",
+      "title": "Morphing Text",
+      "description": "A dynamic text morphing component for Magic UI.",
+      "files": [
+        {
+          "path": "registry/magicui/morphing-text.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "scroll-progress",
+      "type": "registry:ui",
+      "title": "Scroll Progress",
+      "description": "Animated Scroll Progress for your pages",
+      "dependencies": [
+        "motion"
+      ],
+      "files": [
+        {
+          "path": "registry/magicui/scroll-progress.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "neon-gradient-card",
+      "type": "registry:ui",
+      "title": "Neon Gradient Card",
+      "description": "A beautiful neon card effect",
+      "cssVars": {
+        "theme": {
+          "animate-background-position-spin": "background-position-spin 3000ms infinite alternate"
+        }
+      },
+      "css": {
+        "@keyframes background-position-spin": {
+          "0%": {
+            "background-position": "top center"
+          },
+          "100%": {
+            "background-position": "bottom center"
+          }
+        }
+      },
+      "files": [
+        {
+          "path": "registry/magicui/neon-gradient-card.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "dot-pattern",
+      "type": "registry:ui",
+      "title": "Dot Pattern",
+      "description": "A background dot pattern made with SVGs, fully customizable using Tailwind CSS.",
+      "files": [
+        {
+          "path": "registry/magicui/dot-pattern.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "flickering-grid",
+      "type": "registry:ui",
+      "title": "Flickering Grid",
+      "description": "A flickering grid background made with SVGs, fully customizable using Tailwind CSS.",
+      "files": [
+        {
+          "path": "registry/magicui/flickering-grid.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "warp-background",
+      "type": "registry:ui",
+      "title": "Warp Background",
+      "description": "A card with a time warping background effect.",
+      "dependencies": [
+        "motion"
+      ],
+      "files": [
+        {
+          "path": "registry/magicui/warp-background.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "smooth-cursor",
+      "type": "registry:ui",
+      "description": "A customizable, physics-based smooth cursor animation component with spring animations and rotation effects",
+      "dependencies": [
+        "framer-motion"
+      ],
+      "files": [
+        {
+          "path": "registry/magicui/smooth-cursor.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "progressive-blur",
+      "type": "registry:ui",
+      "title": "Progressive Blur",
+      "description": "The Progressive Blur component adds a smooth blur gradient effect to scrollable content, indicating more content below or above.",
+      "files": [
+        {
+          "path": "registry/magicui/progressive-blur.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "line-shadow-text",
+      "type": "registry:ui",
+      "title": "Line Shadow Text",
+      "description": "A text component with a moving line shadow.",
+      "dependencies": [
+        "motion"
+      ],
+      "cssVars": {
+        "theme": {
+          "animate-line-shadow": "line-shadow 15s linear infinite"
+        }
+      },
+      "css": {
+        "@keyframes line-shadow": {
+          "0%": {
+            "background-position": "0 0"
+          },
+          "100%": {
+            "background-position": "100% -100%"
+          }
+        }
+      },
+      "files": [
+        {
+          "path": "registry/magicui/line-shadow-text.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "animated-beam",
+      "type": "registry:ui",
+      "title": "Animated Beam",
+      "description": "An animated beam of light which travels along a path. Useful for showcasing the integration features of a website.",
+      "dependencies": [
+        "motion"
+      ],
+      "files": [
+        {
+          "path": "registry/magicui/animated-beam.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "blur-fade",
+      "type": "registry:ui",
+      "title": "Blur Fade",
+      "description": "Blur fade in and out animation. Used to smoothly fade in and out content.",
+      "dependencies": [
+        "motion"
+      ],
+      "files": [
+        {
+          "path": "registry/magicui/blur-fade.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "shine-border",
+      "type": "registry:ui",
+      "title": "Shine Border",
+      "description": "Shine border is an animated background border effect.",
+      "cssVars": {
+        "theme": {
+          "animate-shine": "shine var(--duration) infinite linear"
+        }
+      },
+      "css": {
+        "@keyframes shine": {
+          "0%": {
+            "background-position": "0% 0%"
+          },
+          "50%": {
+            "background-position": "100% 100%"
+          },
+          "to": {
+            "background-position": "0% 0%"
+          }
+        }
+      },
+      "files": [
+        {
+          "path": "registry/magicui/shine-border.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "text-animate",
+      "type": "registry:ui",
+      "title": "Text Animate",
+      "description": "A text animation component that animates text using a variety of different animations.",
+      "dependencies": [
+        "motion"
+      ],
+      "files": [
+        {
+          "path": "registry/magicui/text-animate.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "bento-grid",
+      "type": "registry:ui",
+      "title": "Bento Grid",
+      "description": "Bento grid is a layout used to showcase the features of a product in a simple and elegant way.",
+      "dependencies": [
+        "@radix-ui/react-icons"
+      ],
+      "registryDependencies": [
+        "button"
+      ],
+      "files": [
+        {
+          "path": "registry/magicui/bento-grid.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "dock",
+      "type": "registry:ui",
+      "title": "Dock",
+      "description": "An implementation of the MacOS dock using react + tailwindcss + motion",
+      "dependencies": [
+        "motion"
+      ],
+      "files": [
+        {
+          "path": "registry/magicui/dock.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "particles",
+      "type": "registry:ui",
+      "title": "Particles",
+      "description": "Particles are a fun way to add some visual flair to your website. They can be used to create a sense of depth, movement, and interactivity.",
+      "files": [
+        {
+          "path": "registry/magicui/particles.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "magic-card-demo",
+      "type": "registry:example",
+      "title": "Magic Card Demo",
+      "description": "Example showing a spotlight effect that follows your mouse cursor and highlights borders on hover.",
+      "registryDependencies": [
+        "@magicui/magic-card"
+      ],
+      "files": [
+        {
+          "path": "registry/example/magic-card-demo.tsx",
+          "type": "registry:example"
+        }
+      ]
+    },
+    {
+      "name": "magic-card-demo-2",
+      "type": "registry:example",
+      "title": "Magic Card Demo 2",
+      "description": "Example showing a magic card with an orb effect.",
+      "registryDependencies": [
+        "@magicui/magic-card",
+        "@magicui/avatar-circles"
+      ],
+      "files": [
+        {
+          "path": "registry/example/magic-card-demo2.tsx",
+          "type": "registry:example"
+        }
+      ]
+    },
+    {
+      "name": "warp-background-demo",
+      "type": "registry:example",
+      "title": "Warp Background Demo",
+      "description": "Example showing a card with a time warping background effect.",
+      "registryDependencies": [
+        "@magicui/warp-background"
+      ],
+      "files": [
+        {
+          "path": "registry/example/warp-background-demo.tsx",
+          "type": "registry:example"
+        }
+      ]
+    },
+    {
+      "name": "line-shadow-text-demo",
+      "type": "registry:example",
+      "title": "Line Shadow Text Demo",
+      "description": "Example showing a text component with a moving line shadow.",
+      "registryDependencies": [
+        "@magicui/line-shadow-text"
+      ],
+      "files": [
+        {
+          "path": "registry/example/line-shadow-text-demo.tsx",
+          "type": "registry:example"
+        }
+      ]
+    }
+  ]
+}

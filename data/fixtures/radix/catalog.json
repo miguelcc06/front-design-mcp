@@ -1,0 +1,125 @@
+{
+  "library": {
+    "id": "radix-primitives",
+    "name": "Radix Primitives",
+    "kind": "library",
+    "description": "Unstyled, accessible React components for building design systems. WAI-ARIA compliant primitives.",
+    "docs_url": "https://www.radix-ui.com/primitives",
+    "homepage_url": "https://www.radix-ui.com",
+    "install_command": "npm install @radix-ui/react-dialog",
+    "tags": ["primitives", "a11y", "react", "headless"],
+    "capabilities": ["accessible", "unstyled", "composable"]
+  },
+  "items": [
+    {
+      "id": "radix-accordion",
+      "name": "Accordion",
+      "kind": "component",
+      "description": "A vertically stacked set of interactive headings that each reveal a section of content.",
+      "docs_url": "https://www.radix-ui.com/primitives/docs/components/accordion",
+      "install_command": "npm install @radix-ui/react-accordion",
+      "package": "@radix-ui/react-accordion",
+      "tags": ["accordion", "disclosure", "a11y"],
+      "capabilities": ["keyboard", "collapsible"]
+    },
+    {
+      "id": "radix-dialog",
+      "name": "Dialog",
+      "kind": "component",
+      "description": "A modal window that interrupts the user with important content and expects a response.",
+      "docs_url": "https://www.radix-ui.com/primitives/docs/components/dialog",
+      "install_command": "npm install @radix-ui/react-dialog",
+      "package": "@radix-ui/react-dialog",
+      "tags": ["dialog", "modal", "overlay"],
+      "capabilities": ["focus-trap", "portal", "modal"]
+    },
+    {
+      "id": "radix-dropdown-menu",
+      "name": "Dropdown Menu",
+      "kind": "component",
+      "description": "Displays a menu to the user—such as a set of actions or functions—triggered by a button.",
+      "docs_url": "https://www.radix-ui.com/primitives/docs/components/dropdown-menu",
+      "install_command": "npm install @radix-ui/react-dropdown-menu",
+      "package": "@radix-ui/react-dropdown-menu",
+      "tags": ["menu", "dropdown", "actions"],
+      "capabilities": ["keyboard", "submenu"]
+    },
+    {
+      "id": "radix-tabs",
+      "name": "Tabs",
+      "kind": "component",
+      "description": "A set of layered sections of content—known as tab panels—that display one panel at a time.",
+      "docs_url": "https://www.radix-ui.com/primitives/docs/components/tabs",
+      "install_command": "npm install @radix-ui/react-tabs",
+      "package": "@radix-ui/react-tabs",
+      "tags": ["tabs", "navigation", "panels"],
+      "capabilities": ["keyboard", "roving-tabindex"]
+    },
+    {
+      "id": "radix-toast",
+      "name": "Toast",
+      "kind": "component",
+      "description": "A succinct message that is displayed temporarily. Supports swipe to dismiss.",
+      "docs_url": "https://www.radix-ui.com/primitives/docs/components/toast",
+      "install_command": "npm install @radix-ui/react-toast",
+      "package": "@radix-ui/react-toast",
+      "tags": ["toast", "notification", "feedback"],
+      "capabilities": ["swipe", "announce"]
+    },
+    {
+      "id": "radix-tooltip",
+      "name": "Tooltip",
+      "kind": "component",
+      "description": "A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.",
+      "docs_url": "https://www.radix-ui.com/primitives/docs/components/tooltip",
+      "install_command": "npm install @radix-ui/react-tooltip",
+      "package": "@radix-ui/react-tooltip",
+      "tags": ["tooltip", "hint", "overlay"],
+      "capabilities": ["hover", "focus"]
+    },
+    {
+      "id": "radix-checkbox",
+      "name": "Checkbox",
+      "kind": "component",
+      "description": "A control that allows the user to toggle between checked and not checked.",
+      "docs_url": "https://www.radix-ui.com/primitives/docs/components/checkbox",
+      "install_command": "npm install @radix-ui/react-checkbox",
+      "package": "@radix-ui/react-checkbox",
+      "tags": ["checkbox", "form", "input"],
+      "capabilities": ["indeterminate", "form"]
+    },
+    {
+      "id": "radix-switch",
+      "name": "Switch",
+      "kind": "component",
+      "description": "A control that allows the user to toggle between checked and not checked states.",
+      "docs_url": "https://www.radix-ui.com/primitives/docs/components/switch",
+      "install_command": "npm install @radix-ui/react-switch",
+      "package": "@radix-ui/react-switch",
+      "tags": ["switch", "toggle", "form"],
+      "capabilities": ["toggle", "form"]
+    },
+    {
+      "id": "radix-slider",
+      "name": "Slider",
+      "kind": "component",
+      "description": "An input where the user selects a value from within a given range.",
+      "docs_url": "https://www.radix-ui.com/primitives/docs/components/slider",
+      "install_command": "npm install @radix-ui/react-slider",
+      "package": "@radix-ui/react-slider",
+      "tags": ["slider", "range", "form"],
+      "capabilities": ["range", "keyboard"]
+    },
+    {
+      "id": "radix-popover",
+      "name": "Popover",
+      "kind": "component",
+      "description": "Displays rich content in a portal, triggered by a button. Non-modal floating panel.",
+      "docs_url": "https://www.radix-ui.com/primitives/docs/components/popover",
+      "install_command": "npm install @radix-ui/react-popover",
+      "package": "@radix-ui/react-popover",
+      "tags": ["popover", "overlay", "portal"],
+      "capabilities": ["portal", "focus"]
+    }
+  ]
+}

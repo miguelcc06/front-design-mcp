@@ -33,10 +33,11 @@ class Store(ABC):
         *,
         source_id: str | None = None,
         kind: str | None = None,
-        limit: int = 100,
+        tags: list[str] | None = None,
+        limit: int = 10_000,
         offset: int = 0,
     ) -> list[FrontendResource]:
-        """List resources with optional filters."""
+        """List resources with optional filters (kind, source_id, tags)."""
 
     @abstractmethod
     def upsert_chunk(self, chunk: DocumentationChunk) -> None:

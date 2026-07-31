@@ -55,7 +55,7 @@ include = [
     "/src",
     "/docs",
     "/configs",
-    "/data/fixtures/README.md",
+    "/data/fixtures",
     "/LICENSE",
     "/README.md",
 ]

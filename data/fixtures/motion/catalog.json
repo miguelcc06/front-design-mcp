@@ -1,0 +1,115 @@
+{
+  "library": {
+    "id": "motion-library",
+    "name": "Motion",
+    "kind": "library",
+    "description": "Production-ready animation library for React, JavaScript, and Vue. Formerly Framer Motion.",
+    "docs_url": "https://motion.dev/docs",
+    "homepage_url": "https://motion.dev",
+    "install_command": "npm install motion",
+    "tags": ["animation", "react", "motion", "library"],
+    "capabilities": ["springs", "layout", "gestures", "scroll", "svg", "exit"]
+  },
+  "items": [
+    {
+      "id": "motion-spring",
+      "name": "Spring animations",
+      "kind": "animation",
+      "description": "Physics-based spring animations for natural motion. Configure stiffness, damping, and mass.",
+      "docs_url": "https://motion.dev/docs/react-animation#spring-animations",
+      "tags": ["spring", "physics", "animation"],
+      "capabilities": ["spring", "transition"]
+    },
+    {
+      "id": "motion-layout",
+      "name": "Layout animations",
+      "kind": "animation",
+      "description": "Animate layout changes automatically with the layout prop. Shared layout transitions across components.",
+      "docs_url": "https://motion.dev/docs/react-layout-animations",
+      "tags": ["layout", "shared-layout", "animation"],
+      "capabilities": ["layout", "shared-element"]
+    },
+    {
+      "id": "motion-scroll",
+      "name": "Scroll-linked animations",
+      "kind": "animation",
+      "description": "Tie animation progress to scroll position with useScroll and useTransform for parallax and progress bars.",
+      "docs_url": "https://motion.dev/docs/react-scroll-animations",
+      "tags": ["scroll", "parallax", "useScroll"],
+      "capabilities": ["scroll", "parallax"]
+    },
+    {
+      "id": "motion-exit",
+      "name": "Exit animations",
+      "kind": "pattern",
+      "description": "Animate components as they leave the tree using AnimatePresence and exit variants.",
+      "docs_url": "https://motion.dev/docs/react-animate-presence",
+      "tags": ["exit", "AnimatePresence", "presence"],
+      "capabilities": ["exit", "presence"]
+    },
+    {
+      "id": "motion-gesture",
+      "name": "Gesture animations",
+      "kind": "animation",
+      "description": "Respond to hover, tap, pan, and drag with whileHover, whileTap, and drag props.",
+      "docs_url": "https://motion.dev/docs/react-gestures",
+      "tags": ["gesture", "drag", "hover", "tap"],
+      "capabilities": ["gestures", "drag"]
+    },
+    {
+      "id": "motion-reduce-motion",
+      "name": "Reduced motion",
+      "kind": "pattern",
+      "description": "Respect prefers-reduced-motion with useReducedMotion and MotionConfig. Prefer opacity/transform fallbacks.",
+      "docs_url": "https://motion.dev/docs/react-accessibility",
+      "tags": ["a11y", "reduce-motion", "accessibility"],
+      "capabilities": ["accessibility", "reduced-motion"],
+      "accessibility_notes": "Always gate decorative motion behind prefers-reduced-motion."
+    },
+    {
+      "id": "motion-stagger",
+      "name": "Stagger children",
+      "kind": "pattern",
+      "description": "Orchestrate child animations with staggerChildren and delayChildren on parent variants.",
+      "docs_url": "https://motion.dev/docs/react-animation#orchestration",
+      "tags": ["stagger", "orchestration", "variants"],
+      "capabilities": ["stagger", "variants"]
+    },
+    {
+      "id": "motion-svg",
+      "name": "SVG animations",
+      "kind": "animation",
+      "description": "Animate SVG pathLength, pathOffset, and attributes for line draws and morph-like effects.",
+      "docs_url": "https://motion.dev/docs/react-svg-animation",
+      "tags": ["svg", "path", "animation"],
+      "capabilities": ["svg", "pathLength"]
+    },
+    {
+      "id": "motion-presence",
+      "name": "AnimatePresence",
+      "kind": "pattern",
+      "description": "Keep exiting components mounted until exit animations finish. Core pattern for modal and route transitions.",
+      "docs_url": "https://motion.dev/docs/react-animate-presence",
+      "tags": ["presence", "modal", "route-transition"],
+      "capabilities": ["presence", "exit"]
+    },
+    {
+      "id": "motion-inview",
+      "name": "In-view animations",
+      "kind": "animation",
+      "description": "Trigger animations when elements enter the viewport with whileInView and useInView.",
+      "docs_url": "https://motion.dev/docs/react-animation#scroll-triggered-animations",
+      "tags": ["inView", "scroll", "viewport"],
+      "capabilities": ["inView", "scroll-trigger"]
+    },
+    {
+      "id": "motion-hero-reveal",
+      "name": "Hero reveal pattern",
+      "kind": "pattern",
+      "description": "Staggered hero headline and CTA entrance using variants, spring, and optional scroll-linked opacity.",
+      "docs_url": "https://motion.dev/docs/react-animation",
+      "tags": ["hero", "reveal", "landing", "stagger"],
+      "capabilities": ["hero", "entrance"]
+    }
+  ]
+}

@@ -1,0 +1,300 @@
+[
+  {
+    "name": "accordion",
+    "type": "registry:ui",
+    "files": [
+      {
+        "path": "ui/accordion.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/accordion"
+  },
+  {
+    "name": "alert",
+    "type": "registry:ui",
+    "files": [
+      {
+        "path": "ui/alert.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/alert"
+  },
+  {
+    "name": "alert-dialog",
+    "type": "registry:ui",
+    "registryDependencies": [
+      "button"
+    ],
+    "files": [
+      {
+        "path": "ui/alert-dialog.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/alert-dialog"
+  },
+  {
+    "name": "avatar",
+    "type": "registry:ui",
+    "files": [
+      {
+        "path": "ui/avatar.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/avatar"
+  },
+  {
+    "name": "badge",
+    "type": "registry:ui",
+    "files": [
+      {
+        "path": "ui/badge.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/badge"
+  },
+  {
+    "name": "button",
+    "type": "registry:ui",
+    "files": [
+      {
+        "path": "ui/button.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/button"
+  },
+  {
+    "name": "calendar",
+    "type": "registry:ui",
+    "dependencies": [
+      "react-day-picker@latest",
+      "date-fns"
+    ],
+    "registryDependencies": [
+      "button"
+    ],
+    "files": [
+      {
+        "path": "ui/calendar.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/calendar"
+  },
+  {
+    "name": "card",
+    "type": "registry:ui",
+    "files": [
+      {
+        "path": "ui/card.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/card"
+  },
+  {
+    "name": "carousel",
+    "type": "registry:ui",
+    "dependencies": [
+      "embla-carousel-react"
+    ],
+    "registryDependencies": [
+      "button"
+    ],
+    "files": [
+      {
+        "path": "ui/carousel.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/carousel"
+  },
+  {
+    "name": "checkbox",
+    "type": "registry:ui",
+    "files": [
+      {
+        "path": "ui/checkbox.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/checkbox"
+  },
+  {
+    "name": "collapsible",
+    "type": "registry:ui",
+    "files": [
+      {
+        "path": "ui/collapsible.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/collapsible"
+  },
+  {
+    "name": "command",
+    "type": "registry:ui",
+    "dependencies": [
+      "cmdk"
+    ],
+    "registryDependencies": [
+      "dialog",
+      "input-group"
+    ],
+    "files": [
+      {
+        "path": "ui/command.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/command"
+  },
+  {
+    "name": "dialog",
+    "type": "registry:ui",
+    "registryDependencies": [
+      "button"
+    ],
+    "files": [
+      {
+        "path": "ui/dialog.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/dialog"
+  },
+  {
+    "name": "dropdown-menu",
+    "type": "registry:ui",
+    "files": [
+      {
+        "path": "ui/dropdown-menu.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/dropdown-menu"
+  },
+  {
+    "name": "form",
+    "type": "registry:ui",
+    "files": []
+  },
+  {
+    "name": "hover-card",
+    "type": "registry:ui",
+    "files": [
+      {
+        "path": "ui/hover-card.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/hover-card"
+  },
+  {
+    "name": "input",
+    "type": "registry:ui",
+    "files": [
+      {
+        "path": "ui/input.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/input"
+  },
+  {
+    "name": "label",
+    "type": "registry:ui",
+    "files": [
+      {
+        "path": "ui/label.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/label"
+  },
+  {
+    "name": "navigation-menu",
+    "type": "registry:ui",
+    "files": [
+      {
+        "path": "ui/navigation-menu.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/navigation-menu"
+  },
+  {
+    "name": "popover",
+    "type": "registry:ui",
+    "files": [
+      {
+        "path": "ui/popover.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/popover"
+  },
+  {
+    "name": "select",
+    "type": "registry:ui",
+    "files": [
+      {
+        "path": "ui/select.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/select"
+  },
+  {
+    "name": "separator",
+    "type": "registry:ui",
+    "files": [
+      {
+        "path": "ui/separator.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/separator"
+  },
+  {
+    "name": "sheet",
+    "type": "registry:ui",
+    "registryDependencies": [
+      "button"
+    ],
+    "files": [
+      {
+        "path": "ui/sheet.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/sheet"
+  },
+  {
+    "name": "skeleton",
+    "type": "registry:ui",
+    "files": [
+      {
+        "path": "ui/skeleton.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/skeleton"
+  },
+  {
+    "name": "slider",
+    "type": "registry:ui",
+    "files": [
+      {
+        "path": "ui/slider.tsx",
+        "type": "registry:ui"
+      }
+    ],
+    "docs_url_hint": "https://ui.shadcn.com/docs/components/radix/slider"
+  }
+]

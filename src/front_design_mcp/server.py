@@ -10,15 +10,16 @@ from fastmcp import FastMCP
 from front_design_mcp import __version__
 from front_design_mcp.config import get_settings
 
-# Tools planned for Package C (not implemented here):
-# 1. front_design_search          — hybrid lexical (+ optional embedding) search
-# 2. front_design_get_resource    — fetch resource by id with citations
-# 3. front_design_list_sources    — list adapter sources + license notes
-# 4. front_design_compare         — compare resources across dimensions
-# 5. front_design_recommend       — recommend components/patterns for a brief
-# 6. front_design_get_docs_chunk  — fetch documentation chunk by id
-# 7. front_design_brief           — structure a FrontendBrief from free text
-# 8. front_design_attribution     — emit attribution / license notes for results
+# Tools planned for Package C (exact product-brief names — not implemented here):
+# 1. discover_frontend_resources
+# 2. search_frontend_knowledge
+# 3. get_resource_details
+# 4. compare_frontend_options
+# 5. recommend_frontend_stack
+# 6. find_components
+# 7. find_animation_patterns
+# 8. build_frontend_brief
+# Plus keep: front_design_ping
 
 mcp = FastMCP("front_design_mcp")
 
