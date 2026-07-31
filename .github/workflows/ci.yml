@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      - name: Sync dependencies
+        run: uv sync --all-extras
+
+      - name: Ruff
+        run: uv run ruff check src tests scripts
+
+      - name: Mypy
+        run: uv run mypy src/front_design_mcp
+
+      - name: Offline ingest
+        run: uv run front-design-ingest --offline
+
+      - name: Pytest
+        run: uv run pytest -q
+
+      - name: RAG evaluation (offline)
+        run: uv run python scripts/evaluate_rag.py
+
+      - name: MCP smoke
+        run: uv run python scripts/mcp_smoke.py

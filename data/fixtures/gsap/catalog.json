@@ -1,0 +1,89 @@
+{
+  "library": {
+    "id": "gsap-library",
+    "name": "GSAP",
+    "kind": "library",
+    "description": "GreenSock Animation Platform — high-performance JavaScript animation toolkit. Metadata/catalog only; do not redistribute GSAP source.",
+    "docs_url": "https://gsap.com/docs/v3/",
+    "homepage_url": "https://gsap.com",
+    "install_command": "npm install gsap",
+    "tags": ["animation", "timeline", "scroll", "gsap"],
+    "capabilities": ["timeline", "tweens", "plugins"],
+    "license_note": "GSAP Standard No Charge License — free for most commercial use; library source must not be redistributed."
+  },
+  "items": [
+    {
+      "id": "gsap-timeline",
+      "name": "Timeline",
+      "kind": "animation",
+      "description": "Sequence and synchronize tweens with precise control over timing, labels, and nested timelines.",
+      "docs_url": "https://gsap.com/docs/v3/GSAP/Timeline",
+      "tags": ["timeline", "sequence", "orchestration"],
+      "capabilities": ["timeline", "labels"]
+    },
+    {
+      "id": "gsap-scrolltrigger",
+      "name": "ScrollTrigger",
+      "kind": "pattern",
+      "description": "Pin, scrub, and trigger animations based on scroll position. Core pattern for scroll storytelling.",
+      "docs_url": "https://gsap.com/docs/v3/Plugins/ScrollTrigger",
+      "tags": ["scroll", "ScrollTrigger", "pin", "scrub"],
+      "capabilities": ["scroll", "pin", "scrub"]
+    },
+    {
+      "id": "gsap-splittext",
+      "name": "SplitText (note)",
+      "kind": "pattern",
+      "description": "Split text into characters, words, or lines for staggered typography animations. Club plugin historically; check current licensing for SplitText availability.",
+      "docs_url": "https://gsap.com/docs/v3/Plugins/SplitText",
+      "tags": ["splittext", "typography", "stagger", "text"],
+      "capabilities": ["text-split", "stagger"]
+    },
+    {
+      "id": "gsap-stagger",
+      "name": "Stagger",
+      "kind": "pattern",
+      "description": "Offset animation start times across multiple targets with stagger objects for grids and lists.",
+      "docs_url": "https://gsap.com/docs/v3/GSAP/Tween#stagger",
+      "tags": ["stagger", "grid", "list"],
+      "capabilities": ["stagger"]
+    },
+    {
+      "id": "gsap-fromto",
+      "name": "fromTo tweens",
+      "kind": "animation",
+      "description": "Explicitly set both start and end states with gsap.fromTo for predictable entrance and exit motion.",
+      "docs_url": "https://gsap.com/docs/v3/GSAP/gsap.fromTo()",
+      "tags": ["fromTo", "tween", "entrance"],
+      "capabilities": ["fromTo", "tween"]
+    },
+    {
+      "id": "gsap-matchmedia",
+      "name": "matchMedia / reduced motion",
+      "kind": "pattern",
+      "description": "Create responsive animation contexts with gsap.matchMedia and respect prefers-reduced-motion breakpoints.",
+      "docs_url": "https://gsap.com/docs/v3/GSAP/gsap.matchMedia()",
+      "tags": ["matchMedia", "reduce-motion", "responsive", "a11y"],
+      "capabilities": ["responsive", "reduced-motion"],
+      "accessibility_notes": "Use matchMedia with prefers-reduced-motion to disable or simplify motion."
+    },
+    {
+      "id": "gsap-context",
+      "name": "gsap.context",
+      "kind": "pattern",
+      "description": "Scope animations for React/Vue cleanup. Revert all animations created inside a context on unmount.",
+      "docs_url": "https://gsap.com/docs/v3/GSAP/gsap.context()",
+      "tags": ["context", "react", "cleanup"],
+      "capabilities": ["context", "cleanup"]
+    },
+    {
+      "id": "gsap-nested-timelines",
+      "name": "Nested timelines",
+      "kind": "pattern",
+      "description": "Compose complex sequences by nesting child timelines inside a master timeline with relative positioning.",
+      "docs_url": "https://gsap.com/docs/v3/GSAP/Timeline",
+      "tags": ["timeline", "nesting", "composition"],
+      "capabilities": ["nested-timeline", "composition"]
+    }
+  ]
+}
