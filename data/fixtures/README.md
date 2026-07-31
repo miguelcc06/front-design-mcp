@@ -12,6 +12,7 @@ data/fixtures/
   motion/catalog.json     # curated Motion library + animation/pattern entries
   radix/catalog.json      # curated Radix primitives (≥10)
   gsap/catalog.json       # GSAP metadata/catalog ONLY (≥8 patterns)
+  curated/patterns.json   # intent patterns (hero, pricing, navbar, dashboard, …)
 ```
 
 ## Usage

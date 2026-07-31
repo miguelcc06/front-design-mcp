@@ -13,6 +13,7 @@ ADAPTER_SOURCE_IDS: tuple[str, ...] = (
     "shadcn",
     "radix",
     "gsap",
+    "curated",
 )
 
 
@@ -38,6 +39,10 @@ def get_adapter_class(source_id: str) -> type[SourceAdapter]:
         from front_design_mcp.adapters.gsap import GsapAdapter
 
         return GsapAdapter
+    if source_id == "curated":
+        from front_design_mcp.adapters.curated import CuratedAdapter
+
+        return CuratedAdapter
     raise KeyError(f"Unknown source adapter: {source_id!r}")
 
 

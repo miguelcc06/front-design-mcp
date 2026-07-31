@@ -28,6 +28,7 @@ class SourceChoice(StrEnum):
     shadcn = "shadcn"
     radix = "radix"
     gsap = "gsap"
+    curated = "curated"
 
 
 @app.callback(invoke_without_command=True)

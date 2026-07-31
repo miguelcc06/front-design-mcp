@@ -61,3 +61,13 @@ def test_gsap_license_not_redistributable() -> None:
     assert "Standard No Charge" in adapter.license_info.name
     resources = [adapter.normalize(r) for r in adapter.fetch_catalog(offline=True)]
     assert len(resources) >= 9
+
+
+def test_curated_intent_patterns() -> None:
+    adapter = get_adapter_class("curated")()
+    resources = [adapter.normalize(r) for r in adapter.fetch_catalog(offline=True)]
+    assert len(resources) >= 6
+    blob = " ".join(r.name.lower() + " " + " ".join(r.tags) for r in resources)
+    for intent in ("hero", "pricing", "navbar", "dashboard", "onboarding", "scroll"):
+        assert intent in blob
+    assert all(r.source.source_id == "curated" for r in resources)

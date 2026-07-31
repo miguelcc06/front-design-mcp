@@ -7,9 +7,10 @@
 | Parent Cloud Agent run model (Cursor run-info) | `cursor-grok-4.5-high-fast` | Evidencia: `cursor-cloud` `run-info` → `originalModelName` |
 | Production implementer (Package A Task subagent) | `cursor-grok-4.5-high` | Grok escribe **todos** los archivos de producción de este paquete |
 | Production implementer (Package B Task subagent) | `cursor-grok-4.5-high` | Adapters reales, fixtures, ingest, BM25 search service |
+| Production implementer (Package C Task subagent) | `cursor-grok-4.5-high` | MCP tool surface, curated intents, smoke Client checks |
 | Official Cursor docs model id | `grok-4.5` | https://cursor.com/docs/evals.md · https://cursor.com/docs/models/grok-4-5.md |
 
-**Nota de identidad (requerida):** el usuario solicitó Opus-as-orchestrator / Grok-as-producer. Los archivos de producción de **Package A** y **Package B** son escritos por **Grok 4.5 High** (`cursor-grok-4.5-high`). El parent Cloud Agent reporta `cursor-grok-4.5-high-fast` vía run-info.
+**Nota de identidad (requerida):** el usuario solicitó Opus-as-orchestrator / Grok-as-producer. Los archivos de producción de **Package A**, **Package B** y **Package C** son escritos por **Grok 4.5 High** (`cursor-grok-4.5-high`). El parent Cloud Agent reporta `cursor-grok-4.5-high-fast` vía run-info.
 
 Run URL (parent): https://cursor.com/agents/bc-d81febe8-2691-4517-a54e-3ea28e317601  
 Branch: `cursor/front-design-mcp-v1-7601`  
@@ -86,20 +87,48 @@ ADRs: [0001](adr/0001-fastmcp-stable.md) · [0002](adr/0002-local-hybrid-search.
 - [x] Unit tests under `tests/`
 - [x] `server.py` tool-name comment list corrected for Package C product brief
 
-### Package C — MCP tools (pendiente)
+### Package C — MCP tools (este paquete)
 
-Ocho tools (nombres exactos del product brief; corrección Orchestrator):
-1. `discover_frontend_resources`
-2. `search_frontend_knowledge`
-3. `get_resource_details`
-4. `compare_frontend_options`
-5. `recommend_frontend_stack`
-6. `find_components`
-7. `find_animation_patterns`
-8. `build_frontend_brief`
-Plus keep `front_design_ping`.
+| Campo | Valor |
+|-------|-------|
+| Status | Complete (validation + commit) |
+| Implementer | Task subagent `cursor-grok-4.5-high` (Grok 4.5 High) |
+| Orchestrator | Opus (delegation); parent run model `cursor-grok-4.5-high-fast` |
+| Scope | Full MCP tool surface + curated intent fixtures + auto-ingest + resources/prompt + smoke tests |
+
+**Decisiones Package C (Orchestrator):**
+1. Exact tool names from product brief (8 + `front_design_ping`)
+2. Handlers under `src/front_design_mcp/tools/`; registered on FastMCP with `readOnlyHint=True`, `openWorldHint=False`, `idempotentHint=True`
+3. Intent coverage fix: `CuratedAdapter` (`source_id=curated`) + `data/fixtures/curated/patterns.json` for hero/pricing/navbar/dashboard/onboarding/scroll storytelling (+ microinteraction)
+4. Auto-ingest offline fixtures when DB empty on first tool use / ping
+5. Resource `front-design://sources`; template `front-design://resource/{id}`; prompt `frontend_implementation_brief`
+6. Recommendation/compare/brief tools separate `facts` vs `inferences`; never claim unverified compatibility
+
+**Entregables Package C:**
+- [x] Tools: discover, search, details, compare, recommend, find_components, find_animation_patterns, build_frontend_brief + ping
+- [x] CuratedAdapter + patterns fixtures; registered in adapter registry + ingest CLI
+- [x] Server auto-ingest + sources resource + resource template + implementation prompt
+- [x] `tests/test_tools_smoke.py`, `tests/test_intent_coverage.py`
+- [x] `docs/orchestration.md` Package C entry (model `cursor-grok-4.5-high`)
 
 ### Package D+ — README completo, tests E2E, polish (pendiente)
+
+---
+
+## Acceptance criteria — Package C
+
+| # | Criterio | OK |
+|---|----------|----|
+| 1 | `uv sync --all-extras` | ☑ |
+| 2 | `uv run ruff check src tests` limpio | ☑ |
+| 3 | `uv run front-design-ingest --offline` popula SQLite (incl. curated) | ☑ |
+| 4 | `uv run pytest -q` pasa | ☑ |
+| 5 | FastMCP Client lista tools + ping + search(accordion) + find_components(pricing) ≥1 | ☑ |
+| 6 | Intent coverage hero/pricing/navbar/dashboard ≥1 | ☑ |
+| 7 | `.agents/skills/mcp-builder/` y `skills-lock.json` intactos | ☑ |
+| 8 | Commit + push a `cursor/front-design-mcp-v1-7601` | ☑ |
+
+Package C implementado por Task subagent model `cursor-grok-4.5-high` (Grok 4.5 High). Parent run model: `cursor-grok-4.5-high-fast`. Docs model id: `grok-4.5`.
 
 ---
 

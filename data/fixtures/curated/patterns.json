@@ -1,0 +1,213 @@
+{
+  "source": {
+    "id": "curated",
+    "name": "front-design-mcp curated patterns",
+    "homepage": "https://github.com/miguelcc06/front-design-mcp",
+    "attribution": "front-design-mcp curated patterns linking to upstream docs"
+  },
+  "items": [
+    {
+      "id": "hero-landing-pattern",
+      "name": "Hero landing pattern",
+      "kind": "pattern",
+      "description": "Full-bleed hero section for landing pages: brand-forward headline, one supporting sentence, primary CTA group, and edge-to-edge visual plane. Prefer Motion scroll/in-view for entrance; Magic UI text/background accents optional.",
+      "docs_url": "https://magicui.design/docs/components/hero-video-dialog",
+      "upstream_refs": [
+        "https://magicui.design/docs/components/shiny-button",
+        "https://motion.dev/docs/react-animation"
+      ],
+      "tags": [
+        "hero",
+        "landing",
+        "pattern",
+        "template",
+        "cta",
+        "full-bleed",
+        "marketing"
+      ],
+      "capabilities": ["hero", "cta", "responsive"],
+      "supported_frameworks": ["react", "next"],
+      "style_tags": ["marketing", "bold", "atmospheric"],
+      "maturity": "stable",
+      "animation": true,
+      "accessibility_notes": "Keep focus order brand → headline → CTA; do not overlay detached badges on hero media; respect prefers-reduced-motion for entrance motion.",
+      "performance_notes": "Prefer CSS/transform entrance over heavy video autoplay; lazy-load hero media.",
+      "related_sources": ["magicui", "motion"]
+    },
+    {
+      "id": "pricing-table-pattern",
+      "name": "Pricing table pattern",
+      "kind": "template",
+      "description": "Pricing section template with tier cards, featured plan highlight, feature comparison rows, and clear CTA per plan. Works with shadcn Card/Button and Radix Toggle for monthly/yearly billing.",
+      "docs_url": "https://ui.shadcn.com/docs/components/card",
+      "upstream_refs": [
+        "https://ui.shadcn.com/docs/components/button",
+        "https://www.radix-ui.com/primitives/docs/components/toggle-group"
+      ],
+      "tags": [
+        "pricing",
+        "pricing-table",
+        "plans",
+        "tiers",
+        "billing",
+        "saas",
+        "pattern",
+        "template",
+        "comparison"
+      ],
+      "capabilities": ["pricing", "comparison", "cta", "toggle-billing"],
+      "supported_frameworks": ["react", "next"],
+      "style_tags": ["saas", "conversion", "clean"],
+      "maturity": "stable",
+      "animation": false,
+      "accessibility_notes": "Use semantic headings per tier; ensure price and CTA labels are readable without color alone; keyboard-accessible billing toggle.",
+      "performance_notes": "Static markup preferred; avoid animating large comparison tables.",
+      "related_sources": ["shadcn", "radix"]
+    },
+    {
+      "id": "navbar-responsive-pattern",
+      "name": "Responsive navbar pattern",
+      "kind": "pattern",
+      "description": "Site navbar / header navigation with logo, primary links, CTA, and mobile sheet/drawer. Built around Radix Navigation Menu / Dialog and shadcn Sheet patterns.",
+      "docs_url": "https://www.radix-ui.com/primitives/docs/components/navigation-menu",
+      "upstream_refs": [
+        "https://ui.shadcn.com/docs/components/navigation-menu",
+        "https://ui.shadcn.com/docs/components/sheet"
+      ],
+      "tags": [
+        "navbar",
+        "nav",
+        "header",
+        "navigation",
+        "menu",
+        "responsive",
+        "mobile",
+        "pattern"
+      ],
+      "capabilities": ["navigation", "mobile-menu", "dropdown"],
+      "supported_frameworks": ["react", "next"],
+      "style_tags": ["chrome", "persistent", "minimal"],
+      "maturity": "stable",
+      "animation": true,
+      "accessibility_notes": "Radix Navigation Menu provides keyboard and ARIA; mobile menu must trap focus and restore it on close; visible focus rings required.",
+      "performance_notes": "Keep sticky header lightweight; avoid layout thrash on scroll.",
+      "related_sources": ["radix", "shadcn"]
+    },
+    {
+      "id": "dashboard-shell-pattern",
+      "name": "Dashboard shell pattern",
+      "kind": "template",
+      "description": "Application dashboard layout: sidebar navigation, top bar, content grid, and data cards/tables. Composes shadcn Sidebar/Table patterns with Radix Accordion/Tabs for dense UI.",
+      "docs_url": "https://ui.shadcn.com/docs/components/sidebar",
+      "upstream_refs": [
+        "https://ui.shadcn.com/docs/components/table",
+        "https://www.radix-ui.com/primitives/docs/components/tabs"
+      ],
+      "tags": [
+        "dashboard",
+        "admin",
+        "sidebar",
+        "app-shell",
+        "data",
+        "analytics",
+        "pattern",
+        "template"
+      ],
+      "capabilities": ["sidebar", "data-table", "tabs", "app-shell"],
+      "supported_frameworks": ["react", "next"],
+      "style_tags": ["product", "dense", "operational"],
+      "maturity": "stable",
+      "animation": false,
+      "accessibility_notes": "Landmark regions for nav/main; skip link to content; tables need captions or aria-labelledby.",
+      "performance_notes": "Virtualize large tables; defer non-critical widgets.",
+      "related_sources": ["shadcn", "radix"]
+    },
+    {
+      "id": "onboarding-wizard-pattern",
+      "name": "Onboarding wizard pattern",
+      "kind": "pattern",
+      "description": "Multi-step onboarding / empty-state wizard with progress indicator, step panels, and Motion AnimatePresence transitions between steps. Pair with Radix Progress and shadcn Form controls.",
+      "docs_url": "https://motion.dev/docs/react-animate-presence",
+      "upstream_refs": [
+        "https://www.radix-ui.com/primitives/docs/components/progress",
+        "https://ui.shadcn.com/docs/components/form"
+      ],
+      "tags": [
+        "onboarding",
+        "wizard",
+        "empty-state",
+        "steps",
+        "welcome",
+        "getting-started",
+        "pattern"
+      ],
+      "capabilities": ["multi-step", "progress", "presence"],
+      "supported_frameworks": ["react", "next"],
+      "style_tags": ["guided", "friendly", "progressive"],
+      "maturity": "stable",
+      "animation": true,
+      "accessibility_notes": "Announce step changes to screen readers; do not auto-advance; honor prefers-reduced-motion by skipping presence transitions.",
+      "performance_notes": "Keep step panels lightweight; prefetch next-step assets.",
+      "related_sources": ["motion", "radix", "shadcn"]
+    },
+    {
+      "id": "scroll-storytelling-pattern",
+      "name": "Scroll storytelling pattern",
+      "kind": "pattern",
+      "description": "Scroll-driven storytelling / narrative sections using Motion useScroll and whileInView, optionally Magic UI marquee or text reveal for chapter beats. Includes cost notes for scroll listeners and a11y for reduced motion.",
+      "docs_url": "https://motion.dev/docs/react-scroll-animations",
+      "upstream_refs": [
+        "https://motion.dev/docs/react-scroll-animations",
+        "https://magicui.design/docs/components/marquee",
+        "https://magicui.design/docs/components/text-reveal"
+      ],
+      "tags": [
+        "scroll",
+        "scroll-storytelling",
+        "storytelling",
+        "narrative",
+        "parallax",
+        "chapter",
+        "landing",
+        "pattern",
+        "animation"
+      ],
+      "capabilities": ["scroll", "parallax", "in-view", "storytelling"],
+      "supported_frameworks": ["react", "next"],
+      "style_tags": ["editorial", "immersive", "cinematic"],
+      "maturity": "stable",
+      "animation": true,
+      "accessibility_notes": "Provide static fallback when prefers-reduced-motion is set; do not convey essential information only via scroll-triggered animation; keep focus order readable without motion.",
+      "performance_notes": "Scroll-linked animations cost: prefer transform/opacity; throttle scroll handlers; avoid layout-affecting properties; limit simultaneous parallax layers.",
+      "related_sources": ["motion", "magicui"]
+    },
+    {
+      "id": "microinteraction-feedback-pattern",
+      "name": "Microinteraction feedback pattern",
+      "kind": "pattern",
+      "description": "Small UI microinteractions for button press, success check, and hover feedback using Motion gestures (whileTap/whileHover) and Magic UI shiny/ripple accents.",
+      "docs_url": "https://motion.dev/docs/react-gestures",
+      "upstream_refs": [
+        "https://magicui.design/docs/components/shiny-button",
+        "https://magicui.design/docs/components/ripple"
+      ],
+      "tags": [
+        "microinteraction",
+        "feedback",
+        "hover",
+        "tap",
+        "gesture",
+        "pattern",
+        "animation"
+      ],
+      "capabilities": ["gestures", "feedback", "hover"],
+      "supported_frameworks": ["react", "next"],
+      "style_tags": ["delight", "subtle"],
+      "maturity": "stable",
+      "animation": true,
+      "accessibility_notes": "Never rely on hover-only cues; honor prefers-reduced-motion by disabling decorative ripples.",
+      "performance_notes": "Keep microinteractions under ~200ms; CSS/transform preferred over JS loops.",
+      "related_sources": ["motion", "magicui"]
+    }
+  ]
+}
