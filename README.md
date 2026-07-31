@@ -423,6 +423,7 @@ This project is **Apache-2.0** ([LICENSE](LICENSE)). Upstream catalogs keep thei
 | [docs/adr/0004-untrusted-ingestion.md](docs/adr/0004-untrusted-ingestion.md) | ADR: untrusted ingestion |
 | [docs/adr/0005-storage-backend-selection.md](docs/adr/0005-storage-backend-selection.md) | ADR: storage backend |
 | [docs/adr/0006-hybrid-search-rrf.md](docs/adr/0006-hybrid-search-rrf.md) | ADR: hybrid search / RRF |
+| [AGENTS.md](AGENTS.md) | Setup notes and house rules for coding agents |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Dev setup & PR guidelines |
 | [SECURITY.md](SECURITY.md) | Vulnerability reporting |
 | [CHANGELOG.md](CHANGELOG.md) | Release notes |
