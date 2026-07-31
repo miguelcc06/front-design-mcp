@@ -8,13 +8,19 @@ opt into lexical/vector retrieval without every backend having to implement it.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterator, Sequence
+from collections.abc import Sequence
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from front_design_mcp.models import DocumentationChunk, FrontendResource
+
+if TYPE_CHECKING:
+    # Import-time only: a runtime import would make store.base and search.base
+    # circular (search.service -> embeddings.base -> store.base).
+    from front_design_mcp.search.base import SearchFilters
 
 
 class SyncOutcome(StrEnum):
@@ -105,12 +111,13 @@ class Store(ABC):
         """Close underlying connections."""
 
     @abstractmethod
-    def transaction(self) -> Iterator[None]:
-        """Context manager running a batch of writes in one transaction.
+    def transaction(self) -> AbstractContextManager[None]:
+        """Run a batch of writes in one transaction.
 
-        Implementations are context managers (``with store.transaction():``)
-        and must commit on success and roll back on exception. Nesting joins
-        the outermost transaction rather than opening a savepoint.
+        Used as ``with store.transaction():``. Implementations commit on
+        success, roll back on exception, and nesting joins the outermost
+        transaction rather than opening a savepoint. Writes issued inside a
+        transaction must not commit on their own.
         """
 
     @abstractmethod
@@ -220,6 +227,39 @@ class Store(ABC):
     @abstractmethod
     def count_embeddings(self, *, model: EmbeddingModelRef | None = None) -> int:
         """Number of stored embeddings, optionally for one model identity."""
+
+    # --- filter resolution -----------------------------------------------
+
+    def resolve_filtered_chunk_ids(self, filters: SearchFilters) -> frozenset[str] | None:
+        """Chunk ids allowed by ``filters``, or ``None`` when nothing is filtered.
+
+        Needed by retrieval strategies that rank in-process (the SQLite BM25
+        path) so filters are applied before scoring and truncation. Backends
+        that push filters into their own SQL do not need to override this; the
+        default implementation is a correct but unoptimised fallback.
+        """
+        if filters.is_empty:
+            return None
+        if filters.excludes_everything:
+            return frozenset()
+        resources = self.list_resources(
+            source_id=filters.source_id,
+            kind=filters.kind,
+            limit=1_000_000,
+        )
+        wanted_tags = set(filters.tags)
+        allowed: set[str] = set()
+        for resource in resources:
+            if filters.resource_ids is not None and resource.id not in filters.resource_ids:
+                continue
+            resource_tags = {t.lower() for t in resource.tags}
+            for chunk in self.list_chunks(resource_id=resource.id, limit=1_000_000):
+                if wanted_tags:
+                    chunk_tags = {t.lower() for t in chunk.tags}
+                    if not wanted_tags & (chunk_tags | resource_tags):
+                        continue
+                allowed.add(chunk.id)
+        return frozenset(allowed)
 
     # --- introspection ---------------------------------------------------
 
