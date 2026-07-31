@@ -9,6 +9,15 @@ from typing import Any
 from pydantic import BaseModel, Field, HttpUrl
 
 
+class RetrievalMode(StrEnum):
+    """How a result set was retrieved."""
+
+    LEXICAL = "lexical"
+    VECTOR = "vector"
+    HYBRID = "hybrid"
+    NONE = "none"
+
+
 class ResourceKind(StrEnum):
     """Kinds of indexed frontend resources."""
 
@@ -98,7 +107,13 @@ class Citation(BaseModel):
 
 
 class SearchHit(BaseModel):
-    """A single search result with score and optional citation."""
+    """A single search result with score, ranking provenance, and citation.
+
+    ``score`` is the final score of whichever strategy produced the hit. For
+    hybrid results it is the Reciprocal Rank Fusion score, which is *not*
+    comparable with raw BM25 or cosine values — the per-branch ranks and scores
+    are reported separately so callers can audit the fusion.
+    """
 
     resource: FrontendResource | None = None
     chunk: DocumentationChunk | None = None
@@ -106,6 +121,12 @@ class SearchHit(BaseModel):
     citation: Citation | None = None
     facts: list[str] = Field(default_factory=list)
     inferences: list[str] = Field(default_factory=list)
+    mode: RetrievalMode | None = None
+    backend: str | None = None
+    lexical_rank: int | None = None
+    vector_rank: int | None = None
+    lexical_score: float | None = None
+    vector_score: float | None = None
 
 
 class CompareResult(BaseModel):
@@ -158,6 +179,7 @@ class ToolResponseEnvelope(BaseModel):
 Url = HttpUrl
 
 __all__ = [
+    "RetrievalMode",
     "ResourceKind",
     "LicenseInfo",
     "SourceRef",

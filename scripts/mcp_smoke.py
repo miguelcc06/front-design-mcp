@@ -28,6 +28,7 @@ async def main() -> int:
         print("TOOLS", names)
         required = {
             "front_design_ping",
+            "front_design_health",
             "discover_frontend_resources",
             "search_frontend_knowledge",
             "get_resource_details",
@@ -44,6 +45,26 @@ async def main() -> int:
 
         ping = await client.call_tool("front_design_ping", {})
         assert ping.data is not None and ping.data.get("status") == "ok"
+
+        health = await client.call_tool("front_design_health", {})
+        health_data = health.data if hasattr(health, "data") else None
+        if not isinstance(health_data, dict) or health_data.get("status") != "ok":
+            print("FAIL front_design_health")
+            return 1
+        capabilities = health_data.get("capabilities") or {}
+        print(
+            "HEALTH",
+            health_data.get("backend"),
+            (health_data.get("search") or {}).get("effective_mode"),
+            f"hybrid={capabilities.get('hybrid_search')}",
+        )
+        # The default offline configuration must not advertise vector or hybrid search.
+        if capabilities.get("vector_search") or capabilities.get("hybrid_search"):
+            print("FAIL health claims vector/hybrid search in the default SQLite mode")
+            return 1
+        if "front_design" in str(health_data) and "password" in str(health_data).lower():
+            print("FAIL health output looks like it contains credentials")
+            return 1
 
         compare = await client.call_tool(
             "compare_frontend_options",

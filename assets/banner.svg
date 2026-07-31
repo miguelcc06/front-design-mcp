@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="front-design-mcp banner">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f1a24"/>
+      <stop offset="55%" stop-color="#152433"/>
+      <stop offset="100%" stop-color="#1a2f28"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3dd6c6"/>
+      <stop offset="100%" stop-color="#5b9fd4"/>
+    </linearGradient>
+    <linearGradient id="blockA" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2a4a5c"/>
+      <stop offset="100%" stop-color="#1e3544"/>
+    </linearGradient>
+    <linearGradient id="blockB" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2d5548"/>
+      <stop offset="100%" stop-color="#1f3d35"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="300" fill="url(#bg)"/>
+
+  <!-- Subtle grid dots -->
+  <g fill="#ffffff" opacity="0.04">
+    <circle cx="80" cy="40" r="1.5"/><circle cx="140" cy="40" r="1.5"/><circle cx="200" cy="40" r="1.5"/>
+    <circle cx="80" cy="80" r="1.5"/><circle cx="140" cy="80" r="1.5"/><circle cx="200" cy="80" r="1.5"/>
+    <circle cx="80" cy="120" r="1.5"/><circle cx="140" cy="120" r="1.5"/><circle cx="200" cy="120" r="1.5"/>
+    <circle cx="1040" cy="50" r="1.5"/><circle cx="1100" cy="50" r="1.5"/><circle cx="1160" cy="50" r="1.5"/>
+    <circle cx="1040" cy="90" r="1.5"/><circle cx="1100" cy="90" r="1.5"/><circle cx="1160" cy="90" r="1.5"/>
+    <circle cx="1040" cy="130" r="1.5"/><circle cx="1100" cy="130" r="1.5"/><circle cx="1160" cy="130" r="1.5"/>
+  </g>
+
+  <!-- Left: layout blocks suggesting UI components -->
+  <g transform="translate(48, 58)">
+    <rect x="0" y="0" width="160" height="28" rx="4" fill="url(#blockA)" stroke="#3dd6c6" stroke-opacity="0.35" stroke-width="1"/>
+    <rect x="0" y="40" width="72" height="72" rx="4" fill="url(#blockB)" stroke="#5b9fd4" stroke-opacity="0.3" stroke-width="1"/>
+    <rect x="84" y="40" width="76" height="32" rx="4" fill="url(#blockA)" stroke="#3dd6c6" stroke-opacity="0.25" stroke-width="1"/>
+    <rect x="84" y="84" width="76" height="28" rx="4" fill="url(#blockA)" stroke="#5b9fd4" stroke-opacity="0.25" stroke-width="1"/>
+    <rect x="0" y="124" width="160" height="20" rx="4" fill="#1e3544" stroke="#3dd6c6" stroke-opacity="0.2" stroke-width="1"/>
+    <!-- tiny accent bars inside blocks -->
+    <rect x="10" y="10" width="48" height="6" rx="2" fill="#3dd6c6" opacity="0.7"/>
+    <rect x="94" y="50" width="36" height="5" rx="2" fill="#5b9fd4" opacity="0.65"/>
+    <rect x="12" y="52" width="40" height="5" rx="2" fill="#3dd6c6" opacity="0.45"/>
+  </g>
+
+  <!-- Centre title -->
+  <text x="600" y="118" text-anchor="middle" fill="#f2f7fb"
+        font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
+        font-size="42" font-weight="700">front-design-mcp</text>
+  <rect x="470" y="134" width="260" height="3" rx="1.5" fill="url(#accent)"/>
+  <text x="600" y="172" text-anchor="middle" fill="#a8c0d0"
+        font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
+        font-size="18" font-weight="500">Frontend UI/UX intelligence for AI agents</text>
+  <text x="600" y="204" text-anchor="middle" fill="#6f8fa3"
+        font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
+        font-size="13">SQLite + BM25 by default | PostgreSQL + pgvector optional</text>
+
+  <!-- Right: retrieval flow nodes -->
+  <g transform="translate(980, 70)">
+    <rect x="0" y="0" width="88" height="36" rx="6" fill="#1e3544" stroke="#5b9fd4" stroke-width="1.5"/>
+    <text x="44" y="23" text-anchor="middle" fill="#c8dce8"
+          font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
+          font-size="12" font-weight="600">query</text>
+
+    <line x1="44" y1="36" x2="44" y2="54" stroke="#3dd6c6" stroke-width="2"/>
+    <polygon points="44,60 40,52 48,52" fill="#3dd6c6"/>
+
+    <rect x="-18" y="62" width="64" height="32" rx="6" fill="#1a2f28" stroke="#3dd6c6" stroke-width="1.5"/>
+    <text x="14" y="82" text-anchor="middle" fill="#b8e8df"
+          font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
+          font-size="11" font-weight="600">lexical</text>
+
+    <rect x="54" y="62" width="64" height="32" rx="6" fill="#1e3544" stroke="#5b9fd4" stroke-width="1.5"/>
+    <text x="86" y="82" text-anchor="middle" fill="#c8dce8"
+          font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
+          font-size="11" font-weight="600">vector</text>
+
+    <line x1="14" y1="94" x2="14" y2="112" stroke="#3dd6c6" stroke-width="1.5"/>
+    <line x1="86" y1="94" x2="86" y2="112" stroke="#5b9fd4" stroke-width="1.5"/>
+    <line x1="14" y1="112" x2="86" y2="112" stroke="#7aa8c4" stroke-width="1.5"/>
+    <line x1="50" y1="112" x2="50" y2="126" stroke="#7aa8c4" stroke-width="2"/>
+    <polygon points="50,132 46,124 54,124" fill="#7aa8c4"/>
+
+    <rect x="6" y="134" width="88" height="36" rx="6" fill="url(#accent)" opacity="0.9"/>
+    <text x="50" y="157" text-anchor="middle" fill="#0f1a24"
+          font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
+          font-size="12" font-weight="700">results</text>
+  </g>
+
+  <!-- Bottom accent strip -->
+  <rect x="0" y="292" width="1200" height="8" fill="url(#accent)" opacity="0.55"/>
+</svg>

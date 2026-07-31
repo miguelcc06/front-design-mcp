@@ -36,8 +36,24 @@ dev = [
     "mypy>=1.13",
     "types-requests>=2.32",
 ]
-# Optional embedding providers (not required for default/minimal mode)
-embeddings = []
+# PostgreSQL + pgvector backend (opt-in; SQLite mode needs none of this)
+postgres = [
+    "psycopg[binary]>=3.2",
+    "pgvector>=0.3",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+]
+# Remote embedding provider (OpenAI-compatible endpoints)
+embeddings = [
+    "openai>=1.40",
+]
+
+# Heavy, fully local embedding provider. Deliberately a dependency group and
+# not an extra so `uv sync --all-extras` stays light: `uv sync --group local`.
+[dependency-groups]
+local = [
+    "fastembed>=0.4",
+]
 
 [project.scripts]
 front-design-mcp = "front_design_mcp.__main__:main"
@@ -78,10 +94,13 @@ packages = ["front_design_mcp"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = ["rank_bm25", "rank_bm25.*"]
+module = ["rank_bm25", "rank_bm25.*", "pgvector", "pgvector.*", "fastembed", "fastembed.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["src", "."]
+markers = [
+    "postgres: requires a live PostgreSQL + pgvector instance (FRONT_DESIGN_TEST_DATABASE_URL)",
+]
