@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "front_design_mcp": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "/absolute/path/to/front-design-mcp",
+        "front-design-mcp"
+      ],
+      "env": {
+        "FRONT_DESIGN_LOG_LEVEL": "INFO",
+        "FRONT_DESIGN_ENABLE_NETWORK_INGEST": "false",
+        "FRONT_DESIGN_EMBEDDING_PROVIDER": "none"
+      }
+    }
+  }
+}
