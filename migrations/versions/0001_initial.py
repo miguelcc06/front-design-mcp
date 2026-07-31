@@ -4,19 +4,22 @@ Revision ID: 0001_initial
 Revises:
 Create Date: 2026-07-31
 
-The ``embeddings.embedding`` column dimension is taken from
-``FRONT_DESIGN_EMBEDDING_DIMENSIONS`` (documented default: 1536 when unset).
-The chosen value is also written to ``store_metadata`` so ``PostgresStore``
-can detect dimension mismatches without parsing DDL.
+The ``embeddings.embedding`` column dimension comes from the configured
+embedding model: ``FRONT_DESIGN_EMBEDDING_DIMENSIONS`` when set, otherwise the
+native dimension of ``FRONT_DESIGN_EMBEDDING_PROVIDER``/``_MODEL``. There is no
+default — a wrong guess produces a schema that rejects every vector the provider
+generates. The chosen value is written to ``store_metadata`` so ``PostgresStore``
+can detect mismatches without parsing DDL.
 """
 
 from __future__ import annotations
 
 import logging
-import os
 from collections.abc import Sequence
 
 from alembic import op
+
+from front_design_mcp.embeddings.dimensions import resolve_dimension_from_env
 
 # revision identifiers, used by Alembic.
 revision: str = "0001_initial"
@@ -26,28 +29,10 @@ depends_on: str | Sequence[str] | None = None
 
 logger = logging.getLogger("alembic.migration")
 
-# Documented default when FRONT_DESIGN_EMBEDDING_DIMENSIONS is unset.
-_DEFAULT_EMBEDDING_DIM = 1536
-
 
 def _embedding_dim() -> int:
-    raw = os.environ.get("FRONT_DESIGN_EMBEDDING_DIMENSIONS")
-    if raw is None or not raw.strip():
-        dim = _DEFAULT_EMBEDDING_DIM
-        logger.info(
-            "FRONT_DESIGN_EMBEDDING_DIMENSIONS unset; using documented default %s",
-            dim,
-        )
-        return dim
-    dim = int(raw.strip())
-    if dim < 1:
-        raise ValueError(
-            f"FRONT_DESIGN_EMBEDDING_DIMENSIONS must be >= 1, got {dim}"
-        )
-    logger.info(
-        "Creating embeddings.embedding as vector(%s) from FRONT_DESIGN_EMBEDDING_DIMENSIONS",
-        dim,
-    )
+    dim = resolve_dimension_from_env()
+    logger.info("Creating embeddings.embedding as vector(%s)", dim)
     return dim
 
 

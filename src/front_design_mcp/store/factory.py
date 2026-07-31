@@ -15,6 +15,29 @@ class StoreBackendError(RuntimeError):
     """The requested backend cannot be constructed."""
 
 
+def _expected_embedding_dim(cfg: Settings) -> int | None:
+    """Dimension the configured provider will produce, or None when unknowable.
+
+    Returning the dimension lets the store reject a schema that was migrated for
+    a different model at open time, instead of failing on the first insert.
+    """
+    if cfg.embedding_provider == "none":
+        return cfg.embedding_dimensions
+    from front_design_mcp.embeddings.base import EmbeddingConfigError
+    from front_design_mcp.embeddings.dimensions import resolve_dimension
+
+    try:
+        return resolve_dimension(
+            provider=cfg.embedding_provider,
+            model=cfg.embedding_model,
+            dimensions=cfg.embedding_dimensions,
+        )
+    except EmbeddingConfigError:
+        # A misconfigured provider is reported by the embedding factory; do not
+        # block opening the store over it.
+        return cfg.embedding_dimensions
+
+
 def create_store(settings: Settings | None = None) -> Store:
     """Instantiate the configured backend.
 
@@ -37,7 +60,7 @@ def create_store(settings: Settings | None = None) -> Store:
             ) from exc
         return PostgresStore(
             dsn,
-            embedding_dim=cfg.embedding_dimensions,
+            embedding_dim=_expected_embedding_dim(cfg),
             statement_timeout_ms=cfg.postgres_statement_timeout_ms,
         )
 
