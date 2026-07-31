@@ -121,6 +121,39 @@ def test_ingest_rewrites_only_changed_chunk_hash(tmp_path: Path) -> None:
         store.close()
 
 
+def test_ingest_rewrites_metadata_only_chunk_change(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    db_path = settings.resolve_db_path()
+    run_ingest(sources=["curated"], online=False, settings=settings, embed=False)
+
+    conn = sqlite3.connect(str(db_path))
+    try:
+        row = conn.execute(
+            "SELECT id, tags FROM chunks WHERE tags != '[]' LIMIT 1"
+        ).fetchone()
+        assert row is not None
+        target_id = str(row[0])
+        conn.execute(
+            "UPDATE chunks SET tags = ?, source_url = ? WHERE id = ?",
+            ('["stale-tag-only"]', "https://example.com/stale-url", target_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    report = run_ingest(sources=["curated"], online=False, settings=settings, embed=False)
+    assert report.chunks_written >= 1
+
+    store = SqliteStore(db_path)
+    try:
+        chunk = store.get_chunk(target_id)
+        assert chunk is not None
+        assert "stale-tag-only" not in chunk.tags
+        assert chunk.source_url != "https://example.com/stale-url"
+    finally:
+        store.close()
+
+
 def test_ingest_prunes_orphan_resource_and_chunk(tmp_path: Path) -> None:
     settings = _settings(tmp_path)
     db_path = settings.resolve_db_path()
@@ -200,6 +233,7 @@ def test_ingest_no_prune_when_adapter_errors(
     curated = report.sources[0]
     assert curated.error is not None
     assert curated.pruned is False
+    assert curated.prune_skipped_reason == "adapter_error"
     # Single-source error → every requested source errored → FAILED.
     assert report.outcome == SyncOutcome.FAILED
 
@@ -208,6 +242,85 @@ def test_ingest_no_prune_when_adapter_errors(
         assert store.count_resources(source_id="curated") == before_resources
         assert store.count_chunks(source_id="curated") == before_chunks
         assert store.list_resource_ids(source_id="curated") == sample_ids
+    finally:
+        store.close()
+
+
+def test_ingest_no_prune_when_item_normalization_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A single malformed item must not delete previously valid rows for that source."""
+    settings = _settings(tmp_path)
+    db_path = settings.resolve_db_path()
+    first = run_ingest(sources=["curated"], online=False, settings=settings, embed=False)
+    assert first.outcome == SyncOutcome.SUCCESS
+    assert first.total_resources > 1
+
+    store = SqliteStore(db_path)
+    try:
+        before_resources = store.count_resources(source_id="curated")
+        before_chunks = store.count_chunks(source_id="curated")
+        before_ids = store.list_resource_ids(source_id="curated")
+        victim_id = sorted(before_ids)[0]
+        # Simulate an orphan that would be pruned if the partial catalog were trusted.
+        orphan = FrontendResource(
+            id="curated:orphan-item-error",
+            kind=ResourceKind.PATTERN,
+            name="Orphan",
+            description="Must survive item-level errors",
+            source=SourceRef(
+                source_id="curated",
+                source_name="Curated",
+                homepage_url="https://example.com",
+                registry_url=None,
+                attribution="test",
+            ),
+            last_indexed_at=datetime.now(UTC),
+        )
+        orphan_chunk = DocumentationChunk(
+            id="curated:orphan-item-error-chunk",
+            resource_id=orphan.id,
+            title="Orphan chunk",
+            content="gone",
+            content_sha256="orphan-sha",
+            last_indexed_at=datetime.now(UTC),
+        )
+        store.upsert_resources([orphan])
+        store.upsert_chunks([orphan_chunk])
+    finally:
+        store.close()
+
+    from front_design_mcp.adapters.curated import CuratedAdapter
+
+    original_normalize = CuratedAdapter.normalize
+
+    def _flaky_normalize(self: CuratedAdapter, raw: dict[str, Any]) -> FrontendResource:
+        rid = str(raw.get("id") or raw.get("name") or "")
+        if f"curated:{rid}" == victim_id:
+            raise ValueError("simulated normalization failure")
+        return original_normalize(self, raw)
+
+    monkeypatch.setattr(CuratedAdapter, "normalize", _flaky_normalize)
+
+    report = run_ingest(sources=["curated"], online=False, settings=settings, embed=False)
+    curated = report.sources[0]
+    assert curated.item_errors >= 1
+    assert curated.pruned is False
+    assert curated.prune_skipped_reason == "item_errors"
+    assert curated.resources_deleted == 0
+    assert curated.chunks_deleted == 0
+    assert report.outcome == SyncOutcome.PARTIAL
+    assert report.ok is False
+
+    store = SqliteStore(db_path)
+    try:
+        # Previously valid rows survive, including the one omitted by the failed item
+        # and the orphan that would have been pruned on a clean run.
+        assert store.count_resources(source_id="curated") >= before_resources + 1
+        assert store.count_chunks(source_id="curated") >= before_chunks + 1
+        assert victim_id in store.list_resource_ids(source_id="curated")
+        assert store.get_resource("curated:orphan-item-error") is not None
+        assert store.get_chunk("curated:orphan-item-error-chunk") is not None
     finally:
         store.close()
 

@@ -1,11 +1,15 @@
 """Embedding generation for ingest — cache-aware, batch-oriented.
 
 Text embedded for each chunk is ``f"{chunk.title}\\n\\n{chunk.content}"`` so
-titles participate in the vector without a separate field.
+titles participate in the vector without a separate field. The cache fingerprint
+stored on each embedding row is the SHA-256 of that exact embedded text — not
+the chunk's ``content_sha256``, which may ignore title and always ignores tags,
+URL, licence, and other metadata.
 """
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -29,6 +33,16 @@ class EmbeddingSyncStats:
     errors: int = 0
 
 
+def embedding_input_text(chunk: DocumentationChunk) -> str:
+    """Exact text passed to the embedding provider for ``chunk``."""
+    return f"{chunk.title}\n\n{chunk.content}"
+
+
+def embedding_input_sha256(chunk: DocumentationChunk) -> str:
+    """Fingerprint of the embedded text; used as the embedding cache key."""
+    return hashlib.sha256(embedding_input_text(chunk).encode("utf-8")).hexdigest()
+
+
 def sync_embeddings(
     store: Store,
     embedder: EmbeddingProvider,
@@ -38,9 +52,9 @@ def sync_embeddings(
 ) -> EmbeddingSyncStats:
     """Embed ``chunks`` into ``store``, skipping cache hits.
 
-    Cache key: ``EmbeddingMeta.matches(embedder.model_ref, chunk.content_sha256)``.
-    A second run over unchanged content with the same model identity writes zero
-    embeddings and reports them as ``reused``.
+    Cache key: ``EmbeddingMeta.matches(embedder.model_ref, embedding_input_sha256)``.
+    Title or content changes invalidate the vector; tag/URL/licence/timestamp-only
+    changes do not, because they are absent from the embedded text.
     """
     stats = EmbeddingSyncStats()
     if not embedder.enabled:
@@ -60,11 +74,12 @@ def sync_embeddings(
 
     meta = store.get_embedding_metadata([c.id for c in chunks])
     to_embed: list[DocumentationChunk] = []
+    input_hashes: dict[str, str] = {}
     for chunk in chunks:
+        input_sha = embedding_input_sha256(chunk)
+        input_hashes[chunk.id] = input_sha
         existing = meta.get(chunk.id)
-        if existing is not None and existing.matches(
-            embedder.model_ref, chunk.content_sha256
-        ):
+        if existing is not None and existing.matches(embedder.model_ref, input_sha):
             stats.reused += 1
         else:
             to_embed.append(chunk)
@@ -75,15 +90,14 @@ def sync_embeddings(
     model = embedder.model_ref
     for start in range(0, len(to_embed), batch_size):
         batch = to_embed[start : start + batch_size]
-        # Title + body: keeps the heading in the vector space cheaply.
-        texts = [f"{chunk.title}\n\n{chunk.content}" for chunk in batch]
+        texts = [embedding_input_text(chunk) for chunk in batch]
         try:
             vectors = embedder.embed_documents(texts)
             records = [
                 EmbeddingRecord(
                     chunk_id=chunk.id,
                     vector=vector,
-                    content_sha256=chunk.content_sha256,
+                    content_sha256=input_hashes[chunk.id],
                     model=model,
                 )
                 for chunk, vector in zip(batch, vectors, strict=True)
@@ -104,5 +118,7 @@ def sync_embeddings(
 
 __all__ = [
     "EmbeddingSyncStats",
+    "embedding_input_sha256",
+    "embedding_input_text",
     "sync_embeddings",
 ]

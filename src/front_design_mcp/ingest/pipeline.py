@@ -53,6 +53,7 @@ class SourceIngestStats:
     embeddings_reused: int = 0
     item_errors: int = 0
     pruned: bool = False
+    prune_skipped_reason: str | None = None
     error: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -123,6 +124,35 @@ def _adapter_chunks(adapter: SourceAdapter, resource: FrontendResource) -> list[
     )
 
 
+def _license_signature(chunk: DocumentationChunk) -> object:
+    if chunk.license is None:
+        return None
+    return chunk.license.model_dump(mode="json")
+
+
+def chunk_needs_persist(
+    existing: DocumentationChunk | None, new: DocumentationChunk
+) -> bool:
+    """True when any *persisted* chunk field differs (excluding last_indexed_at).
+
+    Adapters stamp ``last_indexed_at`` with ``utc_now()`` on every run, so comparing
+    that field would force a full rewrite. Title, tags, URL, version, licence, and
+    content must still trigger an upsert when they change.
+    """
+    if existing is None:
+        return True
+    return (
+        existing.resource_id != new.resource_id
+        or existing.title != new.title
+        or existing.content != new.content
+        or existing.source_url != new.source_url
+        or existing.version != new.version
+        or _license_signature(existing) != _license_signature(new)
+        or list(existing.tags) != list(new.tags)
+        or existing.content_sha256 != new.content_sha256
+    )
+
+
 def _collect_source(
     adapter: SourceAdapter,
     *,
@@ -173,6 +203,7 @@ def _ingest_one_source(
         stats.error = fetch_error
         # Never prune a source whose adapter raised — empty is not authoritative.
         stats.pruned = False
+        stats.prune_skipped_reason = "adapter_error"
         log.warning(
             "ingest_prune_skipped_after_error",
             source_id=adapter.source_id,
@@ -182,14 +213,30 @@ def _ingest_one_source(
 
     produced_resource_ids = {r.id for r in resources}
     produced_chunk_ids = {c.id for c in chunks}
-    fingerprints = store.list_chunk_fingerprints(source_id=adapter.source_id)
+    existing_chunks = {
+        c.id: c
+        for c in store.list_chunks(source_id=adapter.source_id, limit=1_000_000)
+    }
 
+    # Persistence change detection covers metadata, not only content_sha256.
+    # Embedding invalidation uses the embedded-text fingerprint separately.
     chunks_to_write = [
-        c for c in chunks if fingerprints.get(c.id) != c.content_sha256
+        c for c in chunks if chunk_needs_persist(existing_chunks.get(c.id), c)
     ]
     stats.chunks_written = len(chunks_to_write)
     stats.chunks_unchanged = len(chunks) - len(chunks_to_write)
     stats.resources_written = len(resources)
+
+    # Item-level normalization failures omit ids from the produced set. Pruning
+    # against that incomplete manifest would delete previously valid rows.
+    allow_prune = prune and item_errors == 0
+    if prune and item_errors > 0:
+        stats.prune_skipped_reason = "item_errors"
+        log.warning(
+            "ingest_prune_skipped_after_item_errors",
+            source_id=adapter.source_id,
+            item_errors=item_errors,
+        )
 
     try:
         with store.transaction():
@@ -198,7 +245,7 @@ def _ingest_one_source(
             if chunks_to_write:
                 store.upsert_chunks(chunks_to_write)
 
-            if prune:
+            if allow_prune:
                 stored_resource_ids = store.list_resource_ids(source_id=adapter.source_id)
                 stale_resources = sorted(stored_resource_ids - produced_resource_ids)
                 # Fingerprints after upserts: anything not produced this run is stale
@@ -219,6 +266,7 @@ def _ingest_one_source(
     except Exception as exc:  # noqa: BLE001 — source-level write failure
         stats.error = str(exc)
         stats.pruned = False
+        stats.prune_skipped_reason = "write_error"
         # Roll back undoes in-txn writes; reset write counters for honesty.
         stats.resources_written = 0
         stats.chunks_written = 0
@@ -274,8 +322,10 @@ def run_ingest(
     Offline (default): load committed fixtures.
     Online: requires ``FRONT_DESIGN_ENABLE_NETWORK_INGEST``; adapters fetch registries.
 
-    One transaction per source. Incremental chunk writes by ``content_sha256``.
-    Optional prune of disappeared rows and embedding sync after each source commits.
+    One transaction per source. Incremental chunk writes when any persisted field
+    changes (not only ``content_sha256``). Pruning is skipped when the source
+    adapter errors or any item fails normalization — a partial catalog is not
+    authoritative. Embedding sync uses the embedded-text fingerprint separately.
     """
     cfg = settings or get_settings()
     offline = not online
@@ -367,6 +417,7 @@ def run_ingest(
 __all__ = [
     "IngestReport",
     "SourceIngestStats",
+    "chunk_needs_persist",
     "clear_post_ingest_hooks",
     "register_post_ingest_hook",
     "run_ingest",

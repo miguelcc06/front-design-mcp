@@ -36,7 +36,7 @@ class EmbeddingModelRef:
     """Identity of the pipeline that produced an embedding.
 
     Embeddings are only reusable when *all* fields match, together with the
-    chunk's ``content_sha256``.
+    fingerprint of the exact embedded text (title + content).
     """
 
     provider: str
@@ -51,7 +51,12 @@ class EmbeddingModelRef:
 
 @dataclass(frozen=True, slots=True)
 class EmbeddingRecord:
-    """A vector to persist for one chunk."""
+    """A vector to persist for one chunk.
+
+    ``content_sha256`` is the fingerprint of the *embedded text*
+    (``title + "\\n\\n" + content``), not necessarily the chunk row's
+    ``content_sha256`` field (which may hash body alone).
+    """
 
     chunk_id: str
     vector: Sequence[float]
@@ -61,7 +66,11 @@ class EmbeddingRecord:
 
 @dataclass(frozen=True, slots=True)
 class EmbeddingMeta:
-    """Persisted embedding metadata used to decide whether to recompute."""
+    """Persisted embedding metadata used to decide whether to recompute.
+
+    ``content_sha256`` is the embedded-text fingerprint (see
+    :class:`EmbeddingRecord`).
+    """
 
     chunk_id: str
     provider: str
