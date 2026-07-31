@@ -247,6 +247,21 @@ class SearchService:
             outcome.notes.append("Filters matched no resources, so no chunk could match.")
             return outcome
 
+        # The configuration may ask for vectors while resolve_mode() has already
+        # ruled them out (no provider, no capability, or a model mismatch). Say so
+        # rather than silently returning lexical results.
+        wants_vectors = self._search_mode in ("auto", "vector", "hybrid")
+        if wants_vectors and requested_mode == RetrievalMode.LEXICAL:
+            if self._vector_block_reason is not None:
+                outcome.degraded = True
+                outcome.notes.append(f"Vector branch unavailable: {self._vector_block_reason}")
+            elif self._search_mode in ("vector", "hybrid"):
+                outcome.degraded = True
+                outcome.notes.append(
+                    "Vector branch unavailable: this backend or embedding provider "
+                    "does not support vector search. Answered with lexical search."
+                )
+
         pool = max(limit, self._candidates)
         lexical = self._lexical_branch(query, filters, pool)
         vector: list[RankedChunk] = []

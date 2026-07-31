@@ -144,6 +144,9 @@ class MemoryStore(Store):
         self._lexical_results = lexical_results
         self._vector_results = vector_results if vector_results is not None else []
         self._vector_error = vector_error
+        # Distinct embedding identities the store claims to hold, in the shape
+        # stats() reports them. Empty means "nothing embedded yet".
+        self.stored_embedding_models: list[dict[str, Any]] = []
         self.lexical_limits: list[int] = []
         self.vector_limits: list[int] = []
         self.lexical_calls = 0
@@ -265,7 +268,7 @@ class MemoryStore(Store):
         return 0
 
     def stats(self) -> dict[str, Any]:
-        return {"backend": "memory"}
+        return {"backend": "memory", "embedding_models": self.stored_embedding_models}
 
     # Protocol methods — presence makes isinstance(..., LexicalSearcher) True.
     def search_lexical(
@@ -610,3 +613,104 @@ def test_limit_honoured_and_candidates_pool_larger() -> None:
     assert store.vector_limits
     assert store.lexical_limits[0] == 40  # max(limit=3, candidates=40)
     assert store.vector_limits[0] == 40
+
+
+# ---------------------------------------------------------------------------
+# Stored vectors from a different model
+# ---------------------------------------------------------------------------
+
+
+def _stored_model(
+    *, provider: str = "fake", model: str = "fake-v1", dim: int = 4, pipeline_version: int = 1
+) -> dict[str, Any]:
+    return {
+        "provider": provider,
+        "model": model,
+        "dim": dim,
+        "pipeline_version": pipeline_version,
+    }
+
+
+def test_matching_stored_model_allows_vector_branch() -> None:
+    store = MemoryStore(
+        vector_search=True,
+        resources=[_resource("r1")],
+        chunks=[_chunk("c1", "r1")],
+        lexical_results=[RankedChunk(chunk_id="c1", score=1.0, rank=1)],
+        vector_results=[RankedChunk(chunk_id="c1", score=0.9, rank=1)],
+    )
+    store.stored_embedding_models = [_stored_model()]
+    service = SearchService(store, embedder=FakeEmbedder(), search_mode="hybrid")
+
+    outcome = service.search_detailed("button", limit=5)
+
+    assert service.resolve_mode() is RetrievalMode.HYBRID
+    assert outcome.mode == "hybrid"
+    assert outcome.vector_used is True
+    assert outcome.degraded is False
+
+
+def test_mismatched_stored_model_blocks_vector_branch() -> None:
+    """A same-dimension model swap must not silently produce nonsense scores."""
+    store = MemoryStore(
+        vector_search=True,
+        resources=[_resource("r1")],
+        chunks=[_chunk("c1", "r1")],
+        lexical_results=[RankedChunk(chunk_id="c1", score=1.0, rank=1)],
+        vector_results=[RankedChunk(chunk_id="c1", score=0.9, rank=1)],
+    )
+    # Same dimension as the provider, different model: every dimension check passes.
+    store.stored_embedding_models = [_stored_model(model="other-model-v9", dim=4)]
+    embedder = FakeEmbedder(dim=4)
+    service = SearchService(store, embedder=embedder, search_mode="hybrid")
+
+    outcome = service.search_detailed("button", limit=5)
+
+    assert outcome.mode == "lexical"
+    assert outcome.degraded is True
+    assert outcome.vector_used is False
+    assert store.vector_calls == 0
+    assert embedder.query_calls == 0
+    assert any("other-model-v9" in note for note in outcome.notes)
+    assert any("Re-embed" in note for note in outcome.notes)
+    # Lexical results still come back rather than an error or an empty page.
+    assert [hit.chunk.id for hit in outcome.hits if hit.chunk] == ["c1"]
+    # The advertised mode must not claim hybrid while the branch is blocked.
+    assert service.resolve_mode() is RetrievalMode.LEXICAL
+    assert service.describe()["embedding_mismatch"] is not None
+
+
+def test_pipeline_version_change_blocks_vector_branch() -> None:
+    store = MemoryStore(
+        vector_search=True,
+        resources=[_resource("r1")],
+        chunks=[_chunk("c1", "r1")],
+        lexical_results=[RankedChunk(chunk_id="c1", score=1.0, rank=1)],
+        vector_results=[RankedChunk(chunk_id="c1", score=0.9, rank=1)],
+    )
+    store.stored_embedding_models = [_stored_model(pipeline_version=2)]
+    service = SearchService(store, embedder=FakeEmbedder(), search_mode="hybrid")
+
+    outcome = service.search_detailed("button", limit=5)
+
+    assert outcome.degraded is True
+    assert outcome.vector_used is False
+
+
+def test_no_stored_embeddings_is_not_a_mismatch() -> None:
+    """An empty corpus must degrade for lack of vectors, not for a model conflict."""
+    store = MemoryStore(
+        vector_search=True,
+        resources=[_resource("r1")],
+        chunks=[_chunk("c1", "r1")],
+        lexical_results=[RankedChunk(chunk_id="c1", score=1.0, rank=1)],
+        vector_results=[],
+    )
+    store.stored_embedding_models = []
+    service = SearchService(store, embedder=FakeEmbedder(), search_mode="hybrid")
+
+    outcome = service.search_detailed("button", limit=5)
+
+    assert service.describe()["embedding_mismatch"] is None
+    assert outcome.degraded is True
+    assert not any("Re-embed" in note for note in outcome.notes)
