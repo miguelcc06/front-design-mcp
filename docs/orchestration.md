@@ -8,9 +8,10 @@
 | Production implementer (Package A Task subagent) | `cursor-grok-4.5-high` | Grok escribe **todos** los archivos de producción de este paquete |
 | Production implementer (Package B Task subagent) | `cursor-grok-4.5-high` | Adapters reales, fixtures, ingest, BM25 search service |
 | Production implementer (Package C Task subagent) | `cursor-grok-4.5-high` | MCP tool surface, curated intents, smoke Client checks |
+| Production implementer (Package D Task subagent) | `cursor-grok-4.5-high` | CI, RAG evaluation, docs, compare/`options` + mypy fixes |
 | Official Cursor docs model id | `grok-4.5` | https://cursor.com/docs/evals.md · https://cursor.com/docs/models/grok-4-5.md |
 
-**Nota de identidad (requerida):** el usuario solicitó Opus-as-orchestrator / Grok-as-producer. Los archivos de producción de **Package A**, **Package B** y **Package C** son escritos por **Grok 4.5 High** (`cursor-grok-4.5-high`). El parent Cloud Agent reporta `cursor-grok-4.5-high-fast` vía run-info.
+**Nota de identidad (requerida):** el usuario solicitó Opus-as-orchestrator / Grok-as-producer. Los archivos de producción de **Package A**, **Package B**, **Package C** y **Package D** son escritos por **Grok 4.5 High** (`cursor-grok-4.5-high`). El parent Cloud Agent reporta `cursor-grok-4.5-high-fast` vía run-info.
 
 Run URL (parent): https://cursor.com/agents/bc-d81febe8-2691-4517-a54e-3ea28e317601  
 Branch: `cursor/front-design-mcp-v1-7601`  
@@ -111,25 +112,6 @@ ADRs: [0001](adr/0001-fastmcp-stable.md) · [0002](adr/0002-local-hybrid-search.
 - [x] `tests/test_tools_smoke.py`, `tests/test_intent_coverage.py`
 - [x] `docs/orchestration.md` Package C entry (model `cursor-grok-4.5-high`)
 
-### Package D+ — README completo, tests E2E, polish (pendiente)
-
----
-
-## Acceptance criteria — Package C
-
-| # | Criterio | OK |
-|---|----------|----|
-| 1 | `uv sync --all-extras` | ☑ |
-| 2 | `uv run ruff check src tests` limpio | ☑ |
-| 3 | `uv run front-design-ingest --offline` popula SQLite (incl. curated) | ☑ |
-| 4 | `uv run pytest -q` pasa | ☑ |
-| 5 | FastMCP Client lista tools + ping + search(accordion) + find_components(pricing) ≥1 | ☑ |
-| 6 | Intent coverage hero/pricing/navbar/dashboard ≥1 | ☑ |
-| 7 | `.agents/skills/mcp-builder/` y `skills-lock.json` intactos | ☑ |
-| 8 | Commit + push a `cursor/front-design-mcp-v1-7601` | ☑ |
-
-Package C implementado por Task subagent model `cursor-grok-4.5-high` (Grok 4.5 High). Parent run model: `cursor-grok-4.5-high-fast`. Docs model id: `grok-4.5`.
-
 ### Package C-fix — Framework aliases + bilingual recommend/brief
 
 | Campo | Valor |
@@ -156,7 +138,64 @@ Package C implementado por Task subagent model `cursor-grok-4.5-high` (Grok 4.5 
 - [x] recommend/brief handlers: expand → intent union → curated/library fallback
 - [x] Tests for aliases + Spanish SaaS/landing smoke paths
 
+### Package D — Quality, evaluation, docs, CI
+
+| Campo | Valor |
+|-------|-------|
+| Status | Complete (validation + commit) |
+| Implementer | Task subagent `cursor-grok-4.5-high` (Grok 4.5 High) |
+| Orchestrator | Opus (delegation); parent run model `cursor-grok-4.5-high-fast` |
+| Scope | CI workflow, offline RAG eval, professional docs, compare/`options` + mypy fixes |
+
+**Decisiones Package D (Orchestrator / review fixes):**
+1. `compare_frontend_options` primary param is `options` (list of ids/names); `resources` kept as deprecated alias
+2. `get_resource_details` keeps FastMCP Client-compatible param `id` (verified; no rename needed)
+3. mypy clean: `rank_bm25` override, typed fixture loaders, `ToolAnnotations(...)` constructed properly, unused ignore removed
+4. Offline eval: 4 fixed ES/EN queries; metrics ≥1 hit OR non-empty recommend; citations; no uncited hard compat claims in facts
+5. CI: push/PR, Python 3.12, uv sync, ruff, mypy, pytest, offline ingest, eval, MCP smoke; `permissions: contents: read`
+6. **Dockerfile:** skipped — not verified with `docker build` in this package; local `uv` + CI is the supported path (noted in README)
+
+**Entregables Package D:**
+- [x] `.github/workflows/ci.yml`
+- [x] `docs/evaluation.md` + `scripts/evaluate_rag.py` + `tests/test_evaluation.py`
+- [x] `scripts/mcp_smoke.py`
+- [x] Professional `README.md`, `CONTRIBUTING.md`, `SECURITY.md`
+- [x] `docs/adapters.md`, `docs/github.md`
+- [x] Expanded `.env.example`; accurate `configs/*` (`uv run --directory … python -m front_design_mcp`)
+- [x] compare/`options` + mypy fixes; orchestration Package D entry (model `cursor-grok-4.5-high`)
+
 ---
+
+## Acceptance criteria — Package D
+
+| # | Criterio | OK |
+|---|----------|----|
+| 1 | `uv sync --all-extras` | ☑ |
+| 2 | `uv run ruff check src tests scripts` limpio | ☑ |
+| 3 | `uv run mypy src/front_design_mcp` exit 0 | ☑ |
+| 4 | `uv run front-design-ingest --offline` | ☑ |
+| 5 | `uv run pytest -q` pasa | ☑ |
+| 6 | `uv run python scripts/evaluate_rag.py` SUMMARY pass | ☑ |
+| 7 | Client: `compare_frontend_options(options=[…])` + `get_resource_details(id=…)` | ☑ |
+| 8 | `.agents/skills/mcp-builder/` y `skills-lock.json` intactos | ☑ |
+| 9 | Commit + push a `cursor/front-design-mcp-v1-7601` | ☑ |
+
+Package D implementado por Task subagent model `cursor-grok-4.5-high` (Grok 4.5 High). Parent run model: `cursor-grok-4.5-high-fast`. Docs model id: `grok-4.5`.
+
+## Acceptance criteria — Package C
+
+| # | Criterio | OK |
+|---|----------|----|
+| 1 | `uv sync --all-extras` | ☑ |
+| 2 | `uv run ruff check src tests` limpio | ☑ |
+| 3 | `uv run front-design-ingest --offline` popula SQLite (incl. curated) | ☑ |
+| 4 | `uv run pytest -q` pasa | ☑ |
+| 5 | FastMCP Client lista tools + ping + search(accordion) + find_components(pricing) ≥1 | ☑ |
+| 6 | Intent coverage hero/pricing/navbar/dashboard ≥1 | ☑ |
+| 7 | `.agents/skills/mcp-builder/` y `skills-lock.json` intactos | ☑ |
+| 8 | Commit + push a `cursor/front-design-mcp-v1-7601` | ☑ |
+
+Package C implementado por Task subagent model `cursor-grok-4.5-high` (Grok 4.5 High). Parent run model: `cursor-grok-4.5-high-fast`. Docs model id: `grok-4.5`.
 
 ## Acceptance criteria — Package A
 

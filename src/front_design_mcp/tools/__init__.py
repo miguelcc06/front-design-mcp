@@ -4,15 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from mcp.types import ToolAnnotations
-
 from front_design_mcp.tools import handlers
 from front_design_mcp.tools.runtime import READONLY_ANNOTATIONS
 
 if TYPE_CHECKING:
     from fastmcp import FastMCP
 
-_ANNOTATIONS = ToolAnnotations(**READONLY_ANNOTATIONS)
+_ANNOTATIONS = READONLY_ANNOTATIONS
 
 
 def register_tools(mcp: FastMCP) -> None:
@@ -42,8 +40,9 @@ def register_tools(mcp: FastMCP) -> None:
         name="get_resource_details",
         annotations=_ANNOTATIONS,
         description=(
-            "Fetch a normalized FrontendResource by id (or exact name), related sanitized "
-            "documentation chunks, and license/attribution."
+            "Fetch a normalized FrontendResource by id (resource id string, e.g. "
+            "motion:motion-library), related sanitized documentation chunks, and "
+            "license/attribution. Parameter name is `id`."
         ),
     )
     mcp.tool(
@@ -51,8 +50,9 @@ def register_tools(mcp: FastMCP) -> None:
         name="compare_frontend_options",
         annotations=_ANNOTATIONS,
         description=(
-            "Compare resource ids/names across criteria. Separates facts from inferences; "
-            "never claims unverified compatibility."
+            "Compare frontend options by id or name. Primary parameter: `options` "
+            "(list of ids/names). Deprecated alias: `resources`. Separates facts from "
+            "inferences; never claims unverified compatibility."
         ),
     )
     mcp.tool(

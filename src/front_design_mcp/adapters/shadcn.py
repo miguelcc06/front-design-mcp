@@ -11,7 +11,7 @@ from front_design_mcp.adapters.base import SourceAdapter
 from front_design_mcp.adapters.common import (
     fetch_json,
     find_by_id,
-    load_fixture_json,
+    load_fixture_list,
     make_chunks_for_resource,
     sanitize_text,
     utc_now,
@@ -58,7 +58,7 @@ class ShadcnAdapter(SourceAdapter):
 
     def _load_index(self, *, offline: bool) -> list[dict[str, Any]]:
         if offline:
-            data = load_fixture_json("shadcn", "index.json")
+            data: object = load_fixture_list("shadcn", "index.json")
         else:
             data = fetch_json(INDEX_URL, timeout=self.http_timeout)
         if not isinstance(data, list):

@@ -6,6 +6,8 @@ import contextlib
 import threading
 from typing import Any
 
+from mcp.types import ToolAnnotations
+
 from front_design_mcp.config import Settings, get_settings
 from front_design_mcp.ingest.pipeline import run_ingest
 from front_design_mcp.logging_utils import get_logger
@@ -22,11 +24,11 @@ _search: SearchService | None = None
 _settings: Settings | None = None
 _ready = False
 
-READONLY_ANNOTATIONS = {
-    "readOnlyHint": True,
-    "openWorldHint": False,
-    "idempotentHint": True,
-}
+READONLY_ANNOTATIONS = ToolAnnotations(
+    readOnlyHint=True,
+    openWorldHint=False,
+    idempotentHint=True,
+)
 
 
 def reset_runtime() -> None:

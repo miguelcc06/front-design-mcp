@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from front_design_mcp.adapters import ADAPTER_SOURCE_IDS, get_adapter_class
 from front_design_mcp.adapters.base import SourceAdapter
@@ -138,7 +138,7 @@ def run_ingest(
             adapter = adapter_cls()
             # Allow adapters to read timeout from settings when present
             if hasattr(adapter, "http_timeout"):
-                adapter.http_timeout = cfg.http_timeout  # type: ignore[attr-defined]
+                cast(Any, adapter).http_timeout = cfg.http_timeout
             stats = _ingest_one(adapter, db, offline=offline)
             report_sources.append(stats)
     finally:

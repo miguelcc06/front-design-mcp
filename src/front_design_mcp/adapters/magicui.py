@@ -12,7 +12,7 @@ from front_design_mcp.adapters.base import SourceAdapter
 from front_design_mcp.adapters.common import (
     fetch_json,
     find_by_id,
-    load_fixture_json,
+    load_fixture_dict,
     make_chunks_for_resource,
     sanitize_text,
     utc_now,
@@ -59,7 +59,7 @@ class MagicUIAdapter(SourceAdapter):
 
     def _load_registry(self, *, offline: bool) -> dict[str, Any]:
         if offline:
-            return load_fixture_json("magicui", "registry.json")
+            return load_fixture_dict("magicui", "registry.json")
         data = fetch_json(REGISTRY_URL, timeout=self.http_timeout)
         if not isinstance(data, dict) or "items" not in data:
             raise ValueError("Unexpected Magic UI registry shape")

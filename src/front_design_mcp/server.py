@@ -30,7 +30,7 @@ mcp = FastMCP(
     ),
 )
 
-_PING_ANNOTATIONS = ToolAnnotations(**READONLY_ANNOTATIONS)
+_PING_ANNOTATIONS: ToolAnnotations = READONLY_ANNOTATIONS
 
 
 @mcp.tool(annotations=_PING_ANNOTATIONS)

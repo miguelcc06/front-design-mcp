@@ -10,7 +10,7 @@ from typing import Any
 from front_design_mcp.adapters.base import SourceAdapter
 from front_design_mcp.adapters.common import (
     find_by_id,
-    load_fixture_json,
+    load_fixture_dict,
     make_chunks_for_resource,
     sanitize_text,
     utc_now,
@@ -65,7 +65,7 @@ class CuratedAdapter(SourceAdapter):
 
     def _load_doc(self, *, offline: bool) -> dict[str, Any]:
         _ = offline  # fixtures-only source
-        return load_fixture_json("curated", "patterns.json")
+        return load_fixture_dict("curated", "patterns.json")
 
     def fetch_catalog(self, *, offline: bool = True) -> list[dict[str, Any]]:
         doc = self._load_doc(offline=offline)

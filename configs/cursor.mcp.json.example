@@ -6,7 +6,9 @@
         "run",
         "--directory",
         "/absolute/path/to/front-design-mcp",
-        "front-design-mcp"
+        "python",
+        "-m",
+        "front_design_mcp"
       ],
       "env": {
         "FRONT_DESIGN_LOG_LEVEL": "INFO",

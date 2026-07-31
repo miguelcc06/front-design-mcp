@@ -9,7 +9,7 @@ from typing import Any
 
 from front_design_mcp.adapters.base import SourceAdapter
 from front_design_mcp.adapters.common import (
-    load_fixture_json,
+    load_fixture_dict,
     make_chunks_for_resource,
     sanitize_text,
     utc_now,
@@ -62,7 +62,7 @@ class MotionAdapter(SourceAdapter):
     def _load_catalog_doc(self, *, offline: bool) -> dict[str, Any]:
         # Curated catalog only — no fragile HTML scrape (online == fixtures for v1).
         _ = offline
-        return load_fixture_json("motion", "catalog.json")
+        return load_fixture_dict("motion", "catalog.json")
 
     def fetch_catalog(self, *, offline: bool = True) -> list[dict[str, Any]]:
         doc = self._load_catalog_doc(offline=offline)

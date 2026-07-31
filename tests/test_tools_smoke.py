@@ -64,3 +64,24 @@ async def test_list_tools_and_core_calls() -> None:
         assert pricing.data is not None
         items = pricing.data.get("items") or []
         assert len(items) >= 1
+
+        compare = await client.call_tool(
+            "compare_frontend_options",
+            {
+                "options": ["motion:motion-library", "gsap:gsap-library"],
+                "criteria": ["license", "accessibility"],
+            },
+        )
+        assert compare.data is not None
+        assert compare.data.get("ok") is True
+        assert "facts" in compare.data
+        assert "inferences" in compare.data
+        assert len(compare.data.get("items") or []) == 2
+
+        details = await client.call_tool(
+            "get_resource_details",
+            {"id": "motion:motion-library"},
+        )
+        assert details.data is not None
+        assert details.data.get("ok") is True
+        assert details.data["resource"]["id"] == "motion:motion-library"

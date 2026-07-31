@@ -39,11 +39,28 @@ def fixtures_dir(source_id: str) -> Path:
     return repo_data_dir() / "fixtures" / source_id
 
 
-def load_fixture_json(source_id: str, filename: str) -> Any:
+def load_fixture_json(source_id: str, filename: str) -> object:
+    """Load a JSON fixture file (object or array). Prefer typed helpers below."""
     path = fixtures_dir(source_id) / filename
     if not path.is_file():
         raise FileNotFoundError(f"Fixture not found: {path}")
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def load_fixture_dict(source_id: str, filename: str) -> dict[str, Any]:
+    """Load a JSON object fixture; raise if the root is not a dict."""
+    data = load_fixture_json(source_id, filename)
+    if not isinstance(data, dict):
+        raise TypeError(f"Expected JSON object in fixture {source_id}/{filename}")
+    return data
+
+
+def load_fixture_list(source_id: str, filename: str) -> list[Any]:
+    """Load a JSON array fixture; raise if the root is not a list."""
+    data = load_fixture_json(source_id, filename)
+    if not isinstance(data, list):
+        raise TypeError(f"Expected JSON array in fixture {source_id}/{filename}")
+    return data
 
 
 def fetch_json(
@@ -52,7 +69,7 @@ def fetch_json(
     timeout: float = 30.0,
     retries: int = 3,
     backoff: float = 0.5,
-) -> Any:
+) -> object:
     """GET JSON with simple exponential backoff retries."""
     last_exc: Exception | None = None
     for attempt in range(retries):

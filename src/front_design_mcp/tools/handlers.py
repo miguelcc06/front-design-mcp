@@ -243,13 +243,17 @@ def search_frontend_knowledge(
 
 
 def get_resource_details(*, id: str) -> dict[str, Any]:
-    """Return a normalized FrontendResource plus related sanitized chunks."""
+    """Return a normalized FrontendResource plus related sanitized chunks.
+
+    Parameter ``id`` is the resource identifier (e.g. ``motion:motion-library``)
+    or an exact/partial name. Confirmed compatible with FastMCP Client.
+    """
     store, _search = ensure_ready()
     rid = (id or "").strip()
     if not rid:
         return {
             "ok": False,
-            "message": "id is required.",
+            "message": "id is required (resource id string, e.g. motion:motion-library).",
             "facts": [],
             "inferences": [],
         }
@@ -328,24 +332,38 @@ _DEFAULT_COMPARE_CRITERIA = [
 
 def compare_frontend_options(
     *,
-    resources: list[str],
+    options: list[str] | None = None,
+    resources: list[str] | None = None,
     criteria: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Structured comparison with facts vs inferences separated."""
-    if not resources:
+    """Structured comparison with facts vs inferences separated.
+
+    Primary parameter is ``options`` (list of resource ids or names).
+    ``resources`` is a deprecated alias accepted for backward compatibility.
+    """
+    selected = list(options) if options else list(resources or [])
+    if not selected:
         return {
             "ok": False,
-            "message": "Pass a list of resource ids or names to compare.",
+            "message": (
+                "Pass `options` (preferred) or deprecated `resources`: "
+                "a list of resource ids or names to compare."
+            ),
             "facts": [],
             "inferences": [],
         }
 
-    found, missing = _resolve_resources(resources)
+    found, missing = _resolve_resources(selected)
     dims = list(criteria) if criteria else list(_DEFAULT_COMPARE_CRITERIA)
     matrix: dict[str, dict[str, str]] = {}
     facts: list[str] = []
     inferences: list[str] = []
     citations: list[dict[str, Any]] = []
+
+    if resources and not options:
+        inferences.append(
+            "Parameter `resources` is deprecated; prefer `options` for compare_frontend_options."
+        )
 
     for r in found:
         row: dict[str, str] = {}
