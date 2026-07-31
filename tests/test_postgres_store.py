@@ -535,6 +535,7 @@ def test_search_vector_ranked_and_filters(store: PostgresStore) -> None:
         _unit(0),
         filters=SearchFilters.build(),
         limit=10,
+        model=model,
     )
     assert len(hits) == 2
     assert hits[0].chunk_id == "c1"
@@ -545,19 +546,79 @@ def test_search_vector_ranked_and_filters(store: PostgresStore) -> None:
         _unit(0),
         filters=SearchFilters.build(source_id="s2"),
         limit=10,
+        model=model,
     )
     assert len(filtered) == 1
     assert filtered[0].chunk_id == "c2"
 
     with pytest.raises(ValueError, match="dimension mismatch"):
-        store.search_vector([0.0, 1.0], filters=SearchFilters.build(), limit=5)
+        store.search_vector(
+            [0.0, 1.0], filters=SearchFilters.build(), limit=5, model=model
+        )
+
+
+def test_search_vector_filters_by_model_identity(store: PostgresStore) -> None:
+    """Mixed identities must never share one cosine ranking."""
+    store.upsert_resources(
+        [
+            _resource("r1", source_id="s1"),
+            _resource("r2", source_id="s1"),
+        ]
+    )
+    store.upsert_chunks([_chunk("c1", "r1"), _chunk("c2", "r2")])
+    matching = EmbeddingModelRef(provider="test", model="tiny", dim=_EMBED_DIM)
+    foreign = EmbeddingModelRef(provider="test", model="other", dim=_EMBED_DIM)
+    store.upsert_embeddings(
+        [
+            EmbeddingRecord(
+                chunk_id="c1",
+                vector=_unit(0),
+                content_sha256="sha-c1",
+                model=matching,
+            ),
+            EmbeddingRecord(
+                chunk_id="c2",
+                vector=_unit(0),
+                content_sha256="sha-c2",
+                model=foreign,
+            ),
+        ]
+    )
+
+    hits = store.search_vector(
+        _unit(0),
+        filters=SearchFilters.build(),
+        limit=10,
+        model=matching,
+    )
+    assert [h.chunk_id for h in hits] == ["c1"]
+
+    foreign_hits = store.search_vector(
+        _unit(0),
+        filters=SearchFilters.build(),
+        limit=10,
+        model=foreign,
+    )
+    assert [h.chunk_id for h in foreign_hits] == ["c2"]
+
+    absent = EmbeddingModelRef(provider="test", model="missing", dim=_EMBED_DIM)
+    assert (
+        store.search_vector(
+            _unit(0), filters=SearchFilters.build(), limit=10, model=absent
+        )
+        == []
+    )
 
 
 def test_search_vector_empty_when_no_embeddings(store: PostgresStore) -> None:
     store.upsert_resources([_resource("r1")])
     store.upsert_chunks([_chunk("c1", "r1")])
+    model = EmbeddingModelRef(provider="test", model="tiny", dim=_EMBED_DIM)
     assert (
-        store.search_vector(_unit(0), filters=SearchFilters.build(), limit=5) == []
+        store.search_vector(
+            _unit(0), filters=SearchFilters.build(), limit=5, model=model
+        )
+        == []
     )
 
 

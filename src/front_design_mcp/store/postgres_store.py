@@ -633,11 +633,15 @@ class PostgresStore(Store):
         *,
         filters: SearchFilters,
         limit: int,
+        model: EmbeddingModelRef,
     ) -> list[RankedChunk]:
         """Rank by cosine similarity: ``score = 1 - (embedding <=> query)``.
 
         pgvector's ``<=>`` operator is cosine *distance* (0 = identical); we
         convert to a higher-is-better similarity for consistent ranking.
+
+        Only rows whose provider/model/dim/pipeline_version match ``model``
+        participate — mixed identities must never share a ranking.
         """
         if filters.excludes_everything or limit <= 0:
             return []
@@ -650,10 +654,23 @@ class PostgresStore(Store):
                     context="search_vector query embedding",
                 )
             )
+        if model.dim != schema_dim:
+            raise ValueError(
+                _dim_mismatch_message(
+                    expected=schema_dim,
+                    actual=model.dim,
+                    context="search_vector model.dim",
+                )
+            )
         with self._lock:
             conn = self._require_conn()
             count_row = conn.execute(
-                "SELECT COUNT(*) AS n FROM embeddings"
+                """
+                SELECT COUNT(*) AS n FROM embeddings
+                WHERE provider = %s AND model = %s AND dim = %s
+                  AND pipeline_version = %s
+                """,
+                (model.provider, model.model, model.dim, model.pipeline_version),
             ).fetchone()
             if not count_row or int(count_row["n"]) == 0:
                 return []
@@ -666,12 +683,24 @@ class PostgresStore(Store):
                 FROM embeddings e
                 JOIN chunks c ON c.id = e.chunk_id
                 JOIN resources r ON r.id = c.resource_id
-                WHERE true
+                WHERE e.provider = %s
+                  AND e.model = %s
+                  AND e.dim = %s
+                  AND e.pipeline_version = %s
                 {where_extra}
                 ORDER BY e.embedding <=> %s::vector ASC, e.chunk_id ASC
                 LIMIT %s
             """
-            bind: list[Any] = [vec, *filter_params, vec, limit]
+            bind: list[Any] = [
+                vec,
+                model.provider,
+                model.model,
+                model.dim,
+                model.pipeline_version,
+                *filter_params,
+                vec,
+                limit,
+            ]
             rows = conn.execute(sql, bind).fetchall()
             return [
                 RankedChunk(

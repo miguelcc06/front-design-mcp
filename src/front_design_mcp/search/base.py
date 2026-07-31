@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Protocol, runtime_checkable
 
 from front_design_mcp.models import DocumentationChunk, SearchHit
+from front_design_mcp.store.base import EmbeddingModelRef
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,8 +110,14 @@ class VectorSearcher(Protocol):
         *,
         filters: SearchFilters,
         limit: int,
+        model: EmbeddingModelRef,
     ) -> list[RankedChunk]:
-        """Return up to ``limit`` candidates ranked by vector similarity."""
+        """Return up to ``limit`` candidates ranked by vector similarity.
+
+        Implementations must restrict the candidate set to rows whose stored
+        provider/model/dim/pipeline_version match ``model`` exactly. Mixing
+        vector spaces in one ranking is never meaningful.
+        """
 
 
 class SearchIndex(ABC):

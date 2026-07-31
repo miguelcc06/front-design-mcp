@@ -96,6 +96,10 @@ class SearchService:
         Comparing a query vector against documents embedded by a *different*
         model produces plausible-looking nonsense, and a same-dimension swap
         passes every dimension check. Refusing is the honest behaviour.
+
+        A *partial* match is also unsafe: ``search_vector`` must never rank
+        rows from mixed identities together, and a corpus that still holds
+        foreign vectors after a partial re-embed is not a coherent space.
         """
         if not self._native_vector or not self._embedder.enabled:
             return None
@@ -103,9 +107,18 @@ class SearchService:
         if not stored:
             return None
         wanted = self._embedder.model_ref
-        if any(model == wanted for model in stored):
+        matching = [model for model in stored if model == wanted]
+        foreign = [model for model in stored if model != wanted]
+        if not foreign:
             return None
         present = ", ".join(sorted(model.key for model in stored))
+        if matching:
+            return (
+                f"Corpus contains mixed embedding identities ({present}); "
+                f"configured provider is {wanted.key}. Re-embed the corpus "
+                "(front-design-ingest) so every vector shares one identity; "
+                "comparing across models is not meaningful."
+            )
         return (
             f"Stored embeddings were produced by {present}, but the configured "
             f"provider is {wanted.key}. Re-embed the corpus (front-design-ingest) "
@@ -210,7 +223,12 @@ class SearchService:
             return []
         searcher: VectorSearcher = self._store  # type: ignore[assignment]  # guarded by isinstance in __init__
         try:
-            return searcher.search_vector(embedding, filters=filters, limit=limit)
+            return searcher.search_vector(
+                embedding,
+                filters=filters,
+                limit=limit,
+                model=self._embedder.model_ref,
+            )
         except ValueError as exc:
             # Dimension mismatch between the provider and the stored schema.
             notes.append(f"Vector branch unavailable: {exc}")

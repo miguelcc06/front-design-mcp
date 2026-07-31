@@ -151,6 +151,7 @@ class MemoryStore(Store):
         self.vector_limits: list[int] = []
         self.lexical_calls = 0
         self.vector_calls = 0
+        self.last_vector_model: EmbeddingModelRef | None = None
 
     def open(self) -> None:
         return None
@@ -291,9 +292,11 @@ class MemoryStore(Store):
         *,
         filters: SearchFilters,
         limit: int,
+        model: EmbeddingModelRef,
     ) -> list[RankedChunk]:
         self.vector_calls += 1
         self.vector_limits.append(limit)
+        self.last_vector_model = model
         if self._vector_error is not None:
             raise self._vector_error
         return list(self._vector_results)[:limit]
@@ -648,6 +651,7 @@ def test_matching_stored_model_allows_vector_branch() -> None:
     assert outcome.mode == "hybrid"
     assert outcome.vector_used is True
     assert outcome.degraded is False
+    assert store.last_vector_model == FakeEmbedder().model_ref
 
 
 def test_mismatched_stored_model_blocks_vector_branch() -> None:
@@ -678,6 +682,33 @@ def test_mismatched_stored_model_blocks_vector_branch() -> None:
     # The advertised mode must not claim hybrid while the branch is blocked.
     assert service.resolve_mode() is RetrievalMode.LEXICAL
     assert service.describe()["embedding_mismatch"] is not None
+
+
+def test_mixed_stored_models_block_vector_branch() -> None:
+    """Partial re-embed leaving two identities must not enable vector search."""
+    store = MemoryStore(
+        vector_search=True,
+        resources=[_resource("r1")],
+        chunks=[_chunk("c1", "r1")],
+        lexical_results=[RankedChunk(chunk_id="c1", score=1.0, rank=1)],
+        vector_results=[RankedChunk(chunk_id="c1", score=0.9, rank=1)],
+    )
+    store.stored_embedding_models = [
+        _stored_model(),
+        _stored_model(model="other-model-v9", dim=4),
+    ]
+    embedder = FakeEmbedder(dim=4)
+    service = SearchService(store, embedder=embedder, search_mode="hybrid")
+
+    outcome = service.search_detailed("button", limit=5)
+
+    assert outcome.mode == "lexical"
+    assert outcome.degraded is True
+    assert outcome.vector_used is False
+    assert store.vector_calls == 0
+    assert embedder.query_calls == 0
+    assert any("mixed embedding identities" in note for note in outcome.notes)
+    assert service.resolve_mode() is RetrievalMode.LEXICAL
 
 
 def test_pipeline_version_change_blocks_vector_branch() -> None:
