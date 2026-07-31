@@ -69,7 +69,7 @@ class FusedCandidate:
     """A candidate after Reciprocal Rank Fusion."""
 
     chunk_id: str
-    score: float
+    score: float = 0.0
     lexical_rank: int | None = None
     vector_rank: int | None = None
     lexical_score: float | None = None
