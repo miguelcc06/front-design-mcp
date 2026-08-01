@@ -53,7 +53,7 @@ Schema upgrades run automatically on open (`PRAGMA user_version` → v2). See [A
 3. Set `FRONT_DESIGN_STORE_BACKEND=postgres` and `FRONT_DESIGN_DATABASE_URL`.
 4. **Migrations first:** `uv run alembic upgrade head` (set `FRONT_DESIGN_EMBEDDING_DIMENSIONS` to match your embedding model **before** the first upgrade).
 5. Ingest: `uv run front-design-ingest --offline` (uses `create_store()`; optional `--backend postgres`). Enable a real embedding provider if you want vectors written during ingest.
-6. Run the MCP server with the same env. **Note:** the MCP tool runtime (`tools/runtime.py`) still opens **SQLite** directly today — Postgres-backed MCP tool serving is **partial / not fully wired**; ingest CLI is backend-aware via `create_store`.
+6. Run the MCP server with the same env. The MCP tool runtime resolves the configured backend through `create_store()`, so the same PostgreSQL settings are used for ingestion and tool serving.
 
 Notes:
 
@@ -110,7 +110,5 @@ This project is **Development Status :: 3 - Alpha**. At minimum, production woul
 - Connection pooling / multi-instance story for Postgres
 - Tuned RRF weights and an evaluation gate you trust (do not invent metrics)
 - Operational runbooks for credential rotation, backup restore drills, and embedding cost controls
-- MCP tool runtime still hardcodes SQLite (`tools/runtime.ensure_ready`); ingest CLI already uses `create_store()`
-- `front_design_health` may still be landing — confirm before relying on it in automation
 
 Use it as a **local agent sidecar**, not as an internet-facing service.
